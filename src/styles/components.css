@@ -1,0 +1,497 @@
+/* ==========================================================================
+   GeoQuest Reusable Components & UI Elements
+   ========================================================================== */
+
+/* Typography & Titles */
+.geoquest-brand {
+  font-family: var(--font-serif);
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--gold-400);
+  text-shadow: 0 0 16px rgba(212, 175, 55, 0.45);
+  margin-top: 10px;
+}
+
+.geoquest-subtitle {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+.geoquest-welcome {
+  font-family: var(--font-serif);
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-top: 14px;
+  letter-spacing: 0.5px;
+}
+
+/* ==========================================================================
+   Buttons
+   ========================================================================== */
+
+.btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  height: 52px;
+  padding: 0 20px;
+  border-radius: var(--radius-md);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  overflow: hidden;
+  transition: all var(--transition-fast);
+}
+
+.btn:active {
+  transform: scale(0.975);
+}
+
+/* 1. Primary Ancient Gold Beveled Button (LOGIN / CREATE) */
+.btn-gold {
+  background: linear-gradient(135deg, #f0d588 0%, #d4af37 40%, #b89025 80%, #9a7315 100%);
+  color: #161205;
+  border: 1px solid rgba(255, 235, 170, 0.6);
+  box-shadow: 0 4px 18px rgba(212, 175, 55, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.5);
+  font-weight: 800;
+}
+
+.btn-gold::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transform: translateX(-150%) skewX(-25deg);
+  pointer-events: none;
+}
+
+.btn-gold:hover::before {
+  animation: goldSheen 1.2s ease-in-out infinite;
+}
+
+.btn-gold:hover {
+  background: linear-gradient(135deg, #fae4a8 0%, #e0bd49 40%, #c59d30 80%, #a87f1c 100%);
+  box-shadow: 0 6px 24px rgba(212, 175, 55, 0.5), inset 0 1px 2px rgba(255, 255, 255, 0.6);
+}
+
+.btn-gold:active {
+  box-shadow: 0 2px 10px rgba(212, 175, 55, 0.3);
+}
+
+/* 2. Secondary Outline / Ancient Slate Button */
+.btn-secondary {
+  background: rgba(26, 23, 19, 0.8);
+  border: 1px solid var(--gold-border);
+  color: var(--text-primary);
+  backdrop-filter: blur(10px);
+}
+
+.btn-secondary:hover {
+  border-color: var(--gold-500);
+  background: rgba(38, 33, 26, 0.9);
+  color: var(--gold-300);
+  box-shadow: 0 0 15px rgba(212, 175, 55, 0.2);
+}
+
+/* 3. Google Sign-In Button */
+.btn-google {
+  background: rgba(22, 20, 17, 0.85);
+  border: 1px solid rgba(138, 120, 85, 0.35);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: none;
+  backdrop-filter: blur(8px);
+}
+
+.btn-google:hover {
+  background: rgba(35, 30, 24, 0.95);
+  border-color: rgba(212, 175, 55, 0.5);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+}
+
+.google-icon {
+  width: 19px;
+  height: 19px;
+  flex-shrink: 0;
+}
+
+/* 4. Guest Mode Button */
+.btn-guest {
+  background: rgba(26, 23, 18, 0.9);
+  border: 1px dashed rgba(212, 175, 55, 0.5);
+  color: var(--gold-400);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.btn-guest:hover {
+  background: rgba(38, 32, 22, 0.95);
+  border-color: var(--gold-400);
+  border-style: solid;
+  color: var(--gold-300);
+  box-shadow: 0 0 18px rgba(212, 175, 55, 0.25);
+}
+
+/* ==========================================================================
+   Form Controls & Inputs
+   ========================================================================== */
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  text-align: left;
+}
+
+.input-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 52px;
+  background: var(--bg-input);
+  border: 1px solid rgba(120, 105, 80, 0.4);
+  border-radius: var(--radius-md);
+  padding: 0 14px;
+  transition: all var(--transition-fast);
+}
+
+.input-container:hover {
+  border-color: rgba(212, 175, 55, 0.6);
+}
+
+.input-container:focus-within {
+  border-color: var(--gold-500);
+  box-shadow: 0 0 16px rgba(212, 175, 55, 0.35), inset 0 0 8px rgba(212, 175, 55, 0.1);
+  background: rgba(24, 20, 16, 0.98);
+}
+
+.input-container.error {
+  border-color: var(--color-danger);
+  box-shadow: 0 0 12px rgba(231, 111, 81, 0.35);
+}
+
+.input-icon-lead {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  color: var(--text-muted);
+  transition: color var(--transition-fast);
+  margin-right: 10px;
+  flex-shrink: 0;
+}
+
+.input-container:focus-within .input-icon-lead {
+  color: var(--gold-400);
+}
+
+.input-field {
+  width: 100%;
+  height: 100%;
+  font-size: 14.5px;
+  color: var(--text-primary);
+}
+
+.input-field::placeholder {
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.input-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  transition: color var(--transition-fast), transform var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.input-toggle-btn:hover {
+  color: var(--gold-400);
+}
+
+.input-toggle-btn:active {
+  transform: scale(0.9);
+}
+
+.input-error-msg {
+  font-size: 11.5px;
+  color: var(--color-danger);
+  padding-left: 4px;
+  display: none;
+  align-items: center;
+  gap: 4px;
+}
+
+.input-error-msg.visible {
+  display: flex;
+}
+
+/* ==========================================================================
+   Divider OR
+   ========================================================================== */
+
+.divider-or {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  margin: 16px 0;
+  gap: 12px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 2px;
+}
+
+.divider-or::before,
+.divider-or::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.4), transparent);
+}
+
+/* ==========================================================================
+   Forgot Password & Extra Links
+   ========================================================================== */
+
+.forgot-password-wrap {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+  margin-top: 2px;
+  margin-bottom: 8px;
+}
+
+.forgot-password-link {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--gold-400);
+  transition: all var(--transition-fast);
+}
+
+.forgot-password-link:hover {
+  color: var(--gold-300);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.auth-footer-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 14px;
+}
+
+.auth-footer-link {
+  font-weight: 700;
+  color: var(--gold-400);
+}
+
+.auth-footer-link:hover {
+  color: var(--gold-300);
+  text-decoration: underline;
+}
+
+/* ==========================================================================
+   Password Strength Meter
+   ========================================================================== */
+
+.strength-meter-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 100%;
+  margin-top: 4px;
+}
+
+.strength-bars {
+  display: flex;
+  gap: 5px;
+  width: 100%;
+  height: 4px;
+}
+
+.strength-bar-seg {
+  flex: 1;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  transition: background-color var(--transition-normal);
+}
+
+.strength-meter-wrap[data-strength="1"] .seg-1 { background-color: #e76f51; }
+.strength-meter-wrap[data-strength="2"] .seg-1,
+.strength-meter-wrap[data-strength="2"] .seg-2 { background-color: #f4a261; }
+.strength-meter-wrap[data-strength="3"] .seg-1,
+.strength-meter-wrap[data-strength="3"] .seg-2,
+.strength-meter-wrap[data-strength="3"] .seg-3 { background-color: #e9c46a; }
+.strength-meter-wrap[data-strength="4"] .seg-1,
+.strength-meter-wrap[data-strength="4"] .seg-2,
+.strength-meter-wrap[data-strength="4"] .seg-3,
+.strength-meter-wrap[data-strength="4"] .seg-4 { background-color: #52b788; }
+
+.strength-info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.strength-text {
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   Modal Dialogs
+   ========================================================================== */
+
+.modal-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(5, 4, 3, 0.85);
+  backdrop-filter: blur(8px);
+  z-index: 100;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+  animation: modalBackdropFadeIn 0.25s ease-out;
+}
+
+.modal-sheet {
+  width: 100%;
+  max-height: 90%;
+  background: linear-gradient(180deg, #1f1b15 0%, #12100d 100%);
+  border-top: 1px solid var(--gold-border);
+  border-left: 1px solid rgba(212, 175, 55, 0.2);
+  border-right: 1px solid rgba(212, 175, 55, 0.2);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.8), 0 0 25px rgba(212, 175, 55, 0.2);
+  display: flex;
+  flex-direction: column;
+  padding: 20px 20px calc(var(--safe-bottom) + 16px) 20px;
+  animation: modalSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow-y: auto;
+}
+
+.modal-handle {
+  width: 36px;
+  height: 4px;
+  background: rgba(212, 175, 55, 0.4);
+  border-radius: 2px;
+  margin: 0 auto 16px auto;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.modal-title {
+  font-family: var(--font-serif);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--gold-400);
+  letter-spacing: 1px;
+}
+
+.modal-close-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  transition: all var(--transition-fast);
+}
+
+.modal-close-btn:hover {
+  background: rgba(212, 175, 55, 0.2);
+  color: var(--gold-300);
+}
+
+/* ==========================================================================
+   Toast Notifications
+   ========================================================================== */
+
+.toast-container {
+  position: absolute;
+  top: calc(var(--safe-top) + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  max-width: 360px;
+  z-index: 200;
+  pointer-events: none;
+}
+
+.toast-bubble {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(22, 19, 15, 0.96);
+  border: 1px solid var(--gold-border);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  color: var(--text-primary);
+  font-size: 13px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.8), 0 0 20px rgba(212, 175, 55, 0.25);
+  backdrop-filter: blur(12px);
+  animation: toastSlideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: auto;
+}
+
+.toast-bubble.toast-info {
+  border-color: var(--gold-border-active);
+}
+
+.toast-bubble.toast-error {
+  border-color: var(--color-danger);
+  background: rgba(30, 15, 12, 0.96);
+}
+
+.toast-bubble.toast-success {
+  border-color: var(--color-success);
+  background: rgba(12, 28, 20, 0.96);
+}
+
+.toast-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
