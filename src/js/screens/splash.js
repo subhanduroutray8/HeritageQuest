@@ -185,23 +185,27 @@ export function renderSplashScreen() {
   // Play subtle entrance sound
   setTimeout(() => sound.playSplashSwell(), 100);
 
-  // Auto transition to login screen after 1.85 seconds
+  // Auto transition to login or home screen after 1.85 seconds
   let timeoutId = setTimeout(() => {
-    transitionToLogin();
+    transitionToNext();
   }, 1850);
 
   // Allow clicking anywhere to skip
   container.addEventListener('click', () => {
     clearTimeout(timeoutId);
-    transitionToLogin();
+    transitionToNext();
   });
 
-  function transitionToLogin() {
+  function transitionToNext() {
     container.style.transition = 'opacity 0.35s ease-out, transform 0.35s ease-out';
     container.style.opacity = '0';
     container.style.transform = 'scale(1.04)';
     setTimeout(() => {
-      appState.navigate('login');
+      if (appState.userSession) {
+        appState.navigate('home');
+      } else {
+        appState.navigate('login');
+      }
     }, 320);
   }
 

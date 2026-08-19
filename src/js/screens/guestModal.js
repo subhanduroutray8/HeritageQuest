@@ -6,6 +6,7 @@ import { SVG_ICONS } from '../assets.js';
 import { appState } from '../state.js';
 import { Validator } from '../validator.js';
 import { sound } from '../audio.js';
+import { getHomeModalHTML, setupHomeModalEvents } from './homeModals.js';
 
 export function renderModalContainer() {
   const modalWrap = document.createElement('div');
@@ -19,6 +20,9 @@ export function renderModalContainer() {
       } else if (data.name === 'forgot_password') {
         modalWrap.innerHTML = createForgotPasswordModalHTML();
         setupForgotPasswordEvents(modalWrap);
+      } else if (['profile', 'mailbox', 'leaderboard', 'heritage_ai', 'settings', 'collection'].includes(data.name)) {
+        modalWrap.innerHTML = getHomeModalHTML(data.name, data.data);
+        setupHomeModalEvents(modalWrap, data.name);
       }
     } else if (event === 'modal_close') {
       modalWrap.innerHTML = '';

@@ -7,6 +7,8 @@ class SoundEngine {
   constructor() {
     this.ctx = null;
     this.isMuted = false;
+    this.volume = 0.8;
+    this.masterGain = null;
   }
 
   init() {
@@ -14,6 +16,9 @@ class SoundEngine {
       const AudioContext = window.AudioContext || window.webkitAudioContext;
       if (AudioContext) {
         this.ctx = new AudioContext();
+        this.masterGain = this.ctx.createGain();
+        this.masterGain.gain.setValueAtTime(this.isMuted ? 0 : this.volume, this.ctx.currentTime);
+        this.masterGain.connect(this.ctx.destination);
       }
     }
     if (this.ctx && this.ctx.state === 'suspended') {
@@ -21,8 +26,19 @@ class SoundEngine {
     }
   }
 
+  setVolume(val) {
+    this.volume = Math.max(0, Math.min(1, parseFloat(val)));
+    if (this.masterGain && this.ctx) {
+      this.masterGain.gain.setValueAtTime(this.isMuted ? 0 : this.volume, this.ctx.currentTime);
+    }
+    return this.volume;
+  }
+
   toggleMute() {
     this.isMuted = !this.isMuted;
+    if (this.masterGain && this.ctx) {
+      this.masterGain.gain.setValueAtTime(this.isMuted ? 0 : this.volume, this.ctx.currentTime);
+    }
     return this.isMuted;
   }
 
@@ -44,7 +60,7 @@ class SoundEngine {
       gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.05);
 
       osc.connect(gain);
-      gain.connect(this.ctx.destination);
+      gain.connect(this.masterGain || this.ctx.destination);
 
       osc.start();
       osc.stop(this.ctx.currentTime + 0.05);
@@ -74,7 +90,7 @@ class SoundEngine {
         gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + delay + 0.6);
 
         osc.connect(gain);
-        gain.connect(this.ctx.destination);
+        gain.connect(this.masterGain || this.ctx.destination);
 
         osc.start(this.ctx.currentTime + delay);
         osc.stop(this.ctx.currentTime + delay + 0.65);
@@ -100,7 +116,7 @@ class SoundEngine {
       gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.18);
 
       osc.connect(gain);
-      gain.connect(this.ctx.destination);
+      gain.connect(this.masterGain || this.ctx.destination);
 
       osc.start();
       osc.stop(this.ctx.currentTime + 0.19);
@@ -126,7 +142,7 @@ class SoundEngine {
       gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 1.8);
 
       osc.connect(gain);
-      gain.connect(this.ctx.destination);
+      gain.connect(this.masterGain || this.ctx.destination);
 
       osc.start();
       osc.stop(this.ctx.currentTime + 1.9);

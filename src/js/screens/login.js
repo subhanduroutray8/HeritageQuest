@@ -7,6 +7,7 @@ import { SVG_ICONS } from '../assets.js';
 import { appState } from '../state.js';
 import { Validator } from '../validator.js';
 import { sound } from '../audio.js';
+import { loginUser } from '../authService.js';
 
 export function renderLoginScreen() {
   const container = document.createElement('div');
@@ -95,6 +96,12 @@ export function renderLoginScreen() {
         <button type="button" class="btn btn-guest" id="btn-guest-login">
           <span class="input-icon-lead" style="margin:0; width:18px;">${SVG_ICONS.user}</span>
           <span>Play as Guest</span>
+        </button>
+
+        <!-- Enter Demo / Developer Mode Bypass -->
+        <button type="button" class="btn btn-dev-bypass" id="btn-dev-bypass" title="Direct access to Home Screen for UI testing">
+          <span style="font-size:14px;">⚡</span>
+          <span>Enter Demo / Developer Mode</span>
         </button>
       </div>
 
@@ -199,7 +206,7 @@ export function renderLoginScreen() {
   });
 
   // 3. Form Submission (Client-Side Validation Only)
-  loginForm.addEventListener('submit', (e) => {
+  loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     sound.playTap();
 
@@ -232,9 +239,76 @@ export function renderLoginScreen() {
       return;
     }
 
-    // Frontend Mock Validation Successful
+    // Firebase Login
+const emailVal = emailInput.value.trim();
+const passwordVal = passwordInput.value;
+
+try {
+    const { user: firebaseUser, profile } = await loginUser(
+    emailVal,
+    passwordVal
+);
+
+    // Use the Firebase account information
+    // while keeping the existing GeoQuest state system.
+    const rawUsername = firebaseUser.email?.split('@')[0] || 'Explorer';
+    const cleanUsername =
+        rawUsername.charAt(0).toUpperCase() +
+        rawUsername.slice(1);
+
+    appState.setUser({
+    uid: firebaseUser.uid,
+    username: profile.username,
+    email: profile.email,
+    role: profile.role,
+    level: profile.level,
+    xp: profile.xp,
+    nextLevelXp: profile.nextLevelXp,
+    title: profile.title,
+    streak: profile.streak,
+    stats: profile.stats,
+    isGuest: false
+});
+
     sound.playChime();
-    appState.showToast('Login functionality will be connected with Firebase soon.', 'info');
+
+    appState.showToast(
+        `Welcome back, ${cleanUsername}!`,
+        'success',
+        3000
+    );
+
+    appState.navigate('home');
+
+} catch (error) {
+    console.error('Firebase login failed:', error);
+
+    let message = 'Unable to log in. Please check your email and password.';
+
+    if (
+        error.code === 'auth/invalid-credential' ||
+        error.code === 'auth/wrong-password' ||
+        error.code === 'auth/user-not-found'
+    ) {
+        message = 'Incorrect email or password.';
+    } else if (error.code === 'auth/invalid-email') {
+        message = 'Please enter a valid email address.';
+    } else if (error.code === 'auth/user-disabled') {
+        message = 'This account has been disabled.';
+    } else if (error.code === 'auth/too-many-requests') {
+        message = 'Too many attempts. Please try again later.';
+    } else if (error.code === 'auth/network-request-failed') {
+        message = 'Network error. Please check your internet connection.';
+    }
+
+    sound.playError();
+
+    appState.showToast(
+        message,
+        'error',
+        4000
+    );
+}
   });
 
   // 4. Forgot Password Click -> Modal
@@ -255,7 +329,15 @@ export function renderLoginScreen() {
     appState.openModal('guest_setup');
   });
 
-  // 7. Create Account Navigation Link
+  // 7. Developer Mode Bypass -> Direct Home Screen Access
+  const devBypassBtn = container.querySelector('#btn-dev-bypass');
+  if (devBypassBtn) {
+    devBypassBtn.addEventListener('click', () => {
+      appState.enterDevMode();
+    });
+  }
+
+  // 8. Create Account Navigation Link
   signupLinkBtn.addEventListener('click', () => {
     appState.navigate('signup');
   });

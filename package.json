@@ -6,5 +6,9 @@
   "scripts": {
     "dev": "node server.js",
     "start": "node server.js"
+  },
+  "dependencies": {
+    "firebase": "^12.17.1",
+    "three": "^0.185.1"
   }
 }

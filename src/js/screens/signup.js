@@ -7,6 +7,7 @@ import { SVG_ICONS } from '../assets.js';
 import { appState } from '../state.js';
 import { Validator } from '../validator.js';
 import { sound } from '../audio.js';
+import { registerUser } from '../authService.js';
 
 export function renderSignupScreen() {
   const container = document.createElement('div');
@@ -255,7 +256,7 @@ export function renderSignupScreen() {
   });
 
   // Submit Handler
-  form.addEventListener('submit', (e) => {
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
     sound.playTap();
 
@@ -305,22 +306,68 @@ export function renderSignupScreen() {
       return;
     }
 
-    // Client-side Registration Success
+    // Firebase Registration
     const name = nameInput.value.trim();
     const email = emailInput.value.trim();
+    const password = passInput.value;
+
+    try {
+    console.log("1. Signup handler reached");
+
+    console.log("2. Calling registerUser with:", email);
+
+    const firebaseUser = await registerUser(
+        name,
+        email,
+        password
+    );
+
+    console.log("3. Firebase user created:", firebaseUser.uid);
+
+    // Keep the existing GeoQuest app state/session
     appState.setUser({
-      username: name,
-      email: email,
-      role: 'Registered Explorer',
-      level: 1,
-      rank: 'Novice Cartographer',
-      isGuest: false
+        uid: firebaseUser.uid,
+        username: name,
+        email: email,
+        role: 'Registered Explorer',
+        level: 1,
+        rank: 'Novice Cartographer',
+        isGuest: false
     });
 
     sound.playChime();
-    appState.showToast(`Welcome to GeoQuest, ${name}!`, 'success', 3500);
+
+    appState.showToast(
+        `Welcome to GeoQuest, ${name}!`,
+        'success',
+        3500
+    );
+
     appState.navigate('home');
-  });
+
+  } catch (error) {
+    console.error('Firebase registration failed:', error);
+
+    let message = 'Unable to create your account. Please try again.';
+
+    if (error.code === 'auth/email-already-in-use') {
+        message = 'An account with this email already exists.';
+    } else if (error.code === 'auth/invalid-email') {
+        message = 'Please enter a valid email address.';
+    } else if (error.code === 'auth/weak-password') {
+        message = 'Your password is too weak.';
+    } else if (error.code === 'auth/network-request-failed') {
+        message = 'Network error. Please check your internet connection.';
+    }
+
+    sound.playError();
+
+    appState.showToast(
+        message,
+        'error',
+        4000
+    );
+} });
 
   return container;
 }

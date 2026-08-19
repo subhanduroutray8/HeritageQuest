@@ -2,6 +2,8 @@
    GeoQuest Main Application Bootstrap
    ========================================================================== */
 
+import { renderKonarkVirtualScreen } from './screens/konarkVirtualScreen.js';   
+import { testKonarkMission } from "./missionService.js";
 import { ParticleSystem } from './particles.js';
 import { appState } from './state.js';
 import { getCurrentLocation, calculateDistance } from './location.js';
@@ -11,6 +13,8 @@ import { renderLoginScreen } from './screens/login.js';
 import { renderSignupScreen } from './screens/signup.js';
 import { renderHomeScreen } from './screens/home.js';
 import { renderModalContainer } from './screens/guestModal.js';
+import { renderMapScreen } from './screens/mapScreen.js';
+import { renderGameModeScreen } from './screens/gameModeScreen.js';
 
 class GeoQuestApp {
   constructor() {
@@ -42,10 +46,17 @@ class GeoQuestApp {
 
     // 5. Initial screen render (Splash)
     this.renderScreen(appState.currentScreen);
+
+    // 6. Test Firestore Konark mission
+    testKonarkMission();
   }
 
   renderScreen(screenName) {
     if (!this.screenContainer) return;
+
+    if (this.phoneViewport) {
+      this.phoneViewport.dataset.screen = screenName;
+    }
 
     // Remove existing screen elements
     this.screenContainer.innerHTML = '';
@@ -64,6 +75,15 @@ class GeoQuestApp {
       case 'home':
         screenElement = renderHomeScreen();
         break;
+      case 'map':
+        screenElement = renderMapScreen();
+        break;
+      case 'gameMode':
+        screenElement = renderGameModeScreen(appState.selectedHeritageSite);
+        break;
+      case 'konarkVirtual':
+        screenElement = renderKonarkVirtualScreen();
+        break;  
       default:
         screenElement = renderLoginScreen();
         break;
@@ -71,7 +91,6 @@ class GeoQuestApp {
 
     if (screenElement) {
       this.screenContainer.appendChild(screenElement);
-      // Scroll to top
       this.screenContainer.scrollTop = 0;
     }
   }
@@ -79,22 +98,15 @@ class GeoQuestApp {
   async checkMyLocation() {
     try {
       console.log('Getting your location...');
-
       const location = await getCurrentLocation();
-
-      console.log('📍 GeoQuest Location');
-      console.log('Latitude:', location.latitude);
-      console.log('Longitude:', location.longitude);
-      console.log('Accuracy:', location.accuracy, 'meters');
-
+      console.log('📍 GeoQuest Location:', location);
       return location;
     } catch (error) {
       console.error('❌ Location error:', error.message);
     }
   }
 
-    async checkTargetLocation() {
-    // Temporary test location
+  async checkTargetLocation() {
     const target = {
       latitude: 20.4933935,
       longitude: 86.4211535,
@@ -103,7 +115,6 @@ class GeoQuestApp {
 
     try {
       const current = await getCurrentLocation();
-
       const distance = calculateDistance(
         current.latitude,
         current.longitude,
@@ -111,18 +122,8 @@ class GeoQuestApp {
         target.longitude
       );
 
-      console.log('🎯 Target Location');
-      console.log('Distance:', Math.round(distance), 'meters');
-      console.log('Allowed radius:', target.radius, 'meters');
-
-      if (distance <= target.radius) {
-        console.log('✅ LOCATION REACHED!');
-        return true;
-      } else {
-        console.log('❌ TOO FAR FROM LOCATION');
-        return false;
-      }
-
+      console.log('🎯 Target Location Distance:', Math.round(distance), 'meters');
+      return distance <= target.radius;
     } catch (error) {
       console.error('❌ Location check failed:', error.message);
       return false;
