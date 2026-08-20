@@ -324,14 +324,23 @@ export function renderSignupScreen() {
 
     console.log("3. Firebase user created:", firebaseUser.uid);
 
-    // Keep the existing GeoQuest app state/session
+    // Keep the existing GeoQuest app state/session with clean user initialization
     appState.setUser({
         uid: firebaseUser.uid,
         username: name,
         email: email,
         role: 'Registered Explorer',
         level: 1,
-        rank: 'Novice Cartographer',
+        xp: 0,
+        nextLevelXp: 1000,
+        title: 'Novice Cartographer',
+        streak: 1,
+        stats: {
+          missionsCompleted: 0,
+          relicsDiscovered: 0,
+          countriesExplored: 0,
+          totalDistanceKm: "0.0"
+        },
         isGuest: false
     });
 

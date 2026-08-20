@@ -1,18 +1,19 @@
 /* ==========================================================================
-   GeoQuest — Heritage Sites Mock Data
-   Updated coordinates matching the new vivid India map:
-   1. Taj Mahal (Agra, Uttar Pradesh)
-   2. Ajanta and Ellora Caves (Maharashtra)
-   3. Sun Temple (Konark, Odisha)
-   4. Kaziranga National Park (Assam)
+   GeoQuest — Heritage Sites Dataset
+   Updated with real-world GPS coordinates, geofencing radius,
+   and verified S35 knowledge base entries (UNESCO & ASI certified).
    ========================================================================== */
 
 export const HERITAGE_SITES = [
   {
     id: 'taj_mahal',
     name: 'Taj Mahal',
+    shortName: 'Taj Mahal',
     location: 'Agra, Uttar Pradesh',
     state: 'Uttar Pradesh',
+    lat: 27.1751,
+    lng: 78.0421,
+    radiusMeters: 500,
     type: 'Cultural Heritage',
     era: '17th Century (1632–1653)',
     difficulty: 'Intermediate',
@@ -22,23 +23,29 @@ export const HERITAGE_SITES = [
     glowColor: 'rgba(167, 139, 250, 0.75)',
     borderGlow: '#8b5cf6',
     themeClass: 'theme-purple',
-    // Positions relative to new map container
     pinX: 40.5,
     pinY: 32.5,
     labelSide: 'right',
     description: 'An ivory-white marble mausoleum on the south bank of the Yamuna river, built by Mughal emperor Shah Jahan in memory of his beloved wife Mumtaz Mahal.',
+    verifiedSource: 'UNESCO World Heritage Centre — Taj Mahal (1983)',
+    hint: 'Notice the perfect bilateral symmetry running along the central reflective pool axis.',
+    quiz: 'Who commissioned the construction of the Taj Mahal? A) Shah Jahan B) Akbar C) Aurangzeb D) Babur',
     facts: [
       'UNESCO World Heritage Site since 1983',
-      'Architectural masterpiece of Mughal symmetry',
-      'Constructed over 22 years by 20,000 artisans'
-    ]
+      'Architectural masterpiece of Mughal symmetry and Pietra Dura inlay',
+      'Constructed over 22 years by 20,000 artisans using Makrana marble'
+    ],
+    keywords: ['taj', 'mahal', 'agra', 'shah jahan', 'mumtaz', 'marble', 'unesco', 'mughal', 'symmetry']
   },
   {
     id: 'ajanta_ellora',
     name: 'Ajanta & Ellora Caves',
     shortName: 'Ajanta and Ellora Caves',
-    location: 'Maharashtra',
+    location: 'Chhatrapati Sambhaji Nagar, Maharashtra',
     state: 'Maharashtra',
+    lat: 20.5519,
+    lng: 75.7033,
+    radiusMeters: 600,
     type: 'Ancient Rock-Cut Heritage',
     era: '2nd Century BC – 6th Century AD',
     difficulty: 'Advanced',
@@ -52,18 +59,25 @@ export const HERITAGE_SITES = [
     pinY: 51.5,
     labelSide: 'right',
     description: 'Ancient rock-cut cave monuments featuring monumental Buddhist, Hindu, and Jain shrines with extraordinary sculptures and murals carved directly into volcanic basalt rock cliffs.',
+    verifiedSource: 'UNESCO World Heritage Centre — Ajanta Caves & Ellora Caves (1983)',
+    hint: 'Look for Cave 16 (Kailasa Temple) carved vertically top-to-bottom from a single rock mass.',
+    quiz: 'What makes the Kailasa Temple at Ellora unique? A) Built with marble B) World’s largest monolithic rock excavation C) Wooden pagoda D) Underwater shrine',
     facts: [
-      'UNESCO double World Heritage Site',
-      '34 monasteries & temples at Ellora, 29 caves at Ajanta',
-      'Features Kailasa Temple, world’s largest monolithic rock excavation'
-    ]
+      'UNESCO double World Heritage Site since 1983',
+      '34 monasteries & temples at Ellora, 30 rock-cut caves at Ajanta',
+      'Features Kailasa Temple, world’s largest single monolithic rock excavation'
+    ],
+    keywords: ['ajanta', 'ellora', 'caves', 'kailasa', 'monolith', 'basalt', 'buddhist', 'murals', 'jataka']
   },
   {
     id: 'sun_temple',
     name: 'Sun Temple',
     shortName: 'Sun Temple, Konark',
-    location: 'Konark, Odisha',
+    location: 'Konark, Puri, Odisha',
     state: 'Konark, Odisha',
+    lat: 19.8876,
+    lng: 86.0945,
+    radiusMeters: 500,
     type: 'Architectural Marvel',
     era: '13th Century (1250 CE)',
     difficulty: 'Intermediate',
@@ -77,20 +91,28 @@ export const HERITAGE_SITES = [
     pinY: 51.0,
     labelSide: 'right',
     description: 'A colossal 13th-century stone chariot dedicated to the Sun God Surya, engineered with 24 intricately carved wheels functioning as precise sundials, pulled by seven stone horses.',
+    verifiedSource: 'UNESCO World Heritage Centre — Sun Temple, Konârak (1984)',
+    hint: 'Think about the vehicle traditionally associated with Surya and look for the 8 major spokes on each sundial wheel.',
+    quiz: 'The Konark Sun Temple is traditionally dedicated to which deity? A) Shiva B) Surya C) Vishnu D) Ganesha',
     facts: [
       'UNESCO World Heritage Site since 1984',
-      'Known historically to ancient mariners as the "Black Pagoda"',
-      'Built by King Narasimhadeva I of the Eastern Ganga Dynasty'
-    ]
+      'Conceived as a colossal chariot with 24 wheels and 7 horses dedicated to Surya',
+      'Built by King Narasimhadeva I of the Eastern Ganga Dynasty in 1250 CE',
+      'Known historically to ancient European navigators as the "Black Pagoda"'
+    ],
+    keywords: ['konark', 'sun', 'temple', 'surya', 'odisha', 'unesco', 'heritage', 'chariot', 'wheels', 'black pagoda', 'ganga dynasty', 'sundial']
   },
   {
     id: 'kaziranga',
     name: 'Kaziranga National Park',
     shortName: 'Kaziranga National Park',
-    location: 'Assam',
+    location: 'Golaghat & Nagaon, Assam',
     state: 'Assam',
+    lat: 26.5775,
+    lng: 93.1711,
+    radiusMeters: 1500,
     type: 'Natural Sanctuary',
-    era: 'Established 1908',
+    era: 'Established 1908 (Park Status 1974)',
     difficulty: 'Expert',
     xpReward: 580,
     icon: '🦏',
@@ -102,10 +124,14 @@ export const HERITAGE_SITES = [
     pinY: 34.2,
     labelSide: 'left',
     description: 'A sanctuary in the Brahmaputra floodplain hosting two-thirds of the world’s great Indian one-horned rhinoceros population alongside wild elephants and royal Bengal tigers.',
+    verifiedSource: 'UNESCO World Heritage Centre — Kaziranga National Park (1985)',
+    hint: 'Observe the tall elephant grass wetlands along the Brahmaputra river basin.',
+    quiz: 'Kaziranga hosts the world’s largest population of which endangered animal? A) Asiatic Lion B) Great Indian One-Horned Rhino C) Snow Leopard D) Red Panda',
     facts: [
       'UNESCO World Heritage Site since 1985',
-      'World’s highest density of one-horned rhinoceroses (2,400+)',
+      'World’s highest density of great Indian one-horned rhinoceroses (2,400+)',
       'Recognized as an Important Bird Area by BirdLife International'
-    ]
+    ],
+    keywords: ['kaziranga', 'assam', 'rhino', 'brahmaputra', 'unesco', 'wildlife', 'sanctuary', 'tiger']
   }
 ];

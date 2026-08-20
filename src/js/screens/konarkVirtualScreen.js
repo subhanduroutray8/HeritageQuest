@@ -1,4 +1,6 @@
 import { getKonarkMission, completeKonarkMission } from '../missionService.js';
+import { auth } from '../firebase.js';
+import { appState } from '../state.js';
 
 let currentMission = null;
 let userAnswers = {};
@@ -220,9 +222,10 @@ window.submitMissionCompletion = async function() {
 
   try {
     const finalScore = totalScore > 0 ? totalScore : (currentMission?.xpReward || 500);
-    const mockUid = 'user_player_01';
+    const actualUid = auth?.currentUser?.uid || appState.player.uid || 'user_player';
 
-    await completeKonarkMission(mockUid, finalScore);
+    await completeKonarkMission(actualUid, finalScore);
+    appState.recordMissionCompletion('konark_mission_01', finalScore);
 
     alert(`🎉 Mission Completed!\n\nYou earned ${finalScore} XP and the Sun Chariot Explorer Badge ☀️! Progress saved to Firestore.`);
     window.location.reload();

@@ -5,6 +5,7 @@
 
 import { sound } from './audio.js';
 import { mockPlayerData, mockLeaderboard, mockMailboxMessages } from './mockData.js';
+import { subscribeRealtimeLeaderboard, updateUserXPInFirestore } from './authService.js';
 
 class StateManager {
   constructor() {
@@ -19,6 +20,21 @@ class StateManager {
     this.deviceMode = 'ios';
     this.selectedHeritageSite = null;
     this.selectedGameMode = null;
+    this.initRealtimeLeaderboard();
+  }
+
+  initRealtimeLeaderboard() {
+    try {
+      subscribeRealtimeLeaderboard((players) => {
+        if (Array.isArray(players) && players.length > 0) {
+          this.leaderboard.topPlayers = players;
+          this.updateLeaderboardRank(this.player);
+          this.notify('leaderboard_update', this.leaderboard);
+        }
+      });
+    } catch (e) {
+      console.warn("Real-time leaderboard init note:", e);
+    }
   }
 
   loadPersistedSession() {
@@ -35,15 +51,118 @@ class StateManager {
     return null;
   }
 
+  getRegisteredAccounts() {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        return JSON.parse(window.localStorage.getItem('geoquest_registered_accounts') || '{}');
+      }
+    } catch (e) {}
+    return {};
+  }
+
+  saveRegisteredAccount(account) {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage && account) {
+        const accounts = this.getRegisteredAccounts();
+        const usernameKey = (account.username || 'Explorer').toLowerCase().trim();
+        const existing = accounts[usernameKey] || {};
+        const merged = { ...existing, ...account, lastLogin: new Date().toISOString() };
+        accounts[usernameKey] = merged;
+        if (account.email) {
+          accounts[account.email.toLowerCase().trim()] = merged;
+        }
+        window.localStorage.setItem('geoquest_registered_accounts', JSON.stringify(accounts));
+      }
+    } catch (e) {}
+  }
+
   initPlayerData() {
     if (this.userSession && this.userSession.username) {
+      const s = this.userSession;
       return {
         ...mockPlayerData,
-        username: this.userSession.username,
-        isGuest: !!this.userSession.isGuest
+        ...s,
+        username: s.username,
+        level: s.level || 1,
+        xp: s.xp || 0,
+        nextLevelXp: s.nextLevelXp || 1000,
+        title: s.title || 'Novice Cartographer',
+        streak: s.streak || 1,
+        stats: s.stats || { missionsCompleted: 0, relicsDiscovered: 0, countriesExplored: 0, totalDistanceKm: "0.0" },
+        badges: s.badges || JSON.parse(JSON.stringify(mockPlayerData.badges)),
+        completedMissions: s.completedMissions || [],
+        isGuest: !!s.isGuest
       };
     }
-    return { ...mockPlayerData };
+    return JSON.parse(JSON.stringify(mockPlayerData));
+  }
+
+  generateUserMailbox(player) {
+    const welcomeMail = {
+      id: "mail-welcome",
+      type: "Expedition Briefing",
+      icon: "🧭",
+      title: `Welcome to GeoQuest, ${player.username}!`,
+      time: "Just now",
+      preview: "Your journey across India's sacred heritage begins now.",
+      content: `Welcome to GeoQuest, ${player.username}! Your mission is to explore legendary sites like the Konark Sun Temple, Taj Mahal, Ajanta Caves, and Kaziranga. Solve quizzes, explore in 3D, and visit physical sites to earn XP and unlock badges!`,
+      unread: true
+    };
+
+    const mails = [welcomeMail];
+
+    // If player has unlocked badges, add celebration mails
+    (player.badges || []).filter(b => b.unlocked).forEach(b => {
+      mails.push({
+        id: `mail-badge-${b.id}`,
+        type: "Badge Unlocked",
+        icon: b.icon || "🏆",
+        title: `Badge Unlocked: ${b.name}!`,
+        time: b.unlockedAt || "Recent",
+        preview: `You unlocked the ${b.name} badge! Reward: ${b.reward}`,
+        content: `Congratulations Explorer! You have unlocked the ${b.name} badge. ${b.desc} ${b.reward} has been credited to your dossier.`,
+        unread: false
+      });
+    });
+
+    return mails;
+  }
+
+  updateLeaderboardRank(player) {
+    const pXp = typeof player.xp === 'number' ? player.xp : 0;
+    const pName = (player.username || '').toLowerCase().trim();
+    const top = this.leaderboard.topPlayers || [];
+
+    // Calculate real-time rank
+    let userRank = 1;
+    let foundInTop = false;
+
+    for (let i = 0; i < top.length; i++) {
+      if (top[i].name && top[i].name.toLowerCase().trim() === pName) {
+        userRank = top[i].rank || (i + 1);
+        foundInTop = true;
+        break;
+      }
+    }
+
+    if (!foundInTop) {
+      userRank = 1;
+      for (let i = 0; i < top.length; i++) {
+        if (pXp >= top[i].xp) {
+          userRank = i + 1;
+          break;
+        }
+        userRank = i + 2;
+      }
+    }
+
+    this.leaderboard.currentUserRank = {
+      rank: userRank,
+      name: player.username || "Explorer",
+      level: player.level || 1,
+      xp: pXp,
+      badge: player.title || "Novice Cartographer"
+    };
   }
 
   subscribe(listener) {
@@ -66,36 +185,90 @@ class StateManager {
   }
 
   setUser(user) {
-    this.userSession = user;
-    try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        window.localStorage.setItem('geoquest_user_session', JSON.stringify(user));
-      }
-    } catch (e) {}
     this.player = {
-      ...this.player,
+      ...this.initPlayerData(),
+      ...user,
       username: user.username || 'Explorer',
+      level: user.level || 1,
+      xp: typeof user.xp === 'number' ? user.xp : 0,
+      nextLevelXp: user.nextLevelXp || 1000,
+      title: user.title || (user.level > 3 ? "Senior Relic Hunter" : "Novice Cartographer"),
+      streak: user.streak || 1,
+      stats: user.stats || { missionsCompleted: 0, relicsDiscovered: 0, countriesExplored: 0, totalDistanceKm: "0.0" },
+      badges: user.badges || JSON.parse(JSON.stringify(mockPlayerData.badges)),
+      completedMissions: user.completedMissions || [],
       isGuest: !!user.isGuest
     };
-    this.notify('user_change', user);
+
+    this.userSession = { ...this.player };
+
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.setItem('geoquest_user_session', JSON.stringify(this.userSession));
+      }
+    } catch (e) {}
+
+    this.mailbox = this.generateUserMailbox(this.player);
+    this.updateLeaderboardRank(this.player);
+    this.saveRegisteredAccount(this.player);
+    
+    // Sync to Firestore in real-time
+    if (this.player.uid) {
+      updateUserXPInFirestore(this.player.uid, this.player);
+    }
+
+    this.notify('user_change', this.player);
   }
 
-  enterDevMode() {
-    const devUser = {
-      username: "DevExplorer",
-      role: "Developer / Demo Mode",
-      level: 5,
-      isGuest: false,
-      isDev: true
-    };
-    this.setUser(devUser);
-    sound.playChime();
-    this.showToast("⚡ Entered Developer / Demo Mode", "info");
-    this.navigate('home');
+  addXP(amount, reason = "") {
+    this.player.xp = (this.player.xp || 0) + amount;
+    
+    // Level up calculation (Every 1000 XP)
+    const newLevel = Math.floor(this.player.xp / 1000) + 1;
+    if (newLevel > this.player.level) {
+      this.player.level = newLevel;
+      this.player.nextLevelXp = newLevel * 1000;
+      this.player.title = newLevel >= 5 ? "Senior Relic Hunter" : (newLevel >= 3 ? "Master Cartographer" : "Explorer");
+      sound.playChime();
+      this.showToast(`🎉 LEVEL UP! You reached Level ${newLevel}!`, 'success', 4000);
+    } else {
+      this.showToast(`⭐ +${amount} XP earned! ${reason}`, 'success');
+    }
+
+    // Check badge condition (first mission completion)
+    if (this.player.stats.missionsCompleted >= 2 && !this.player.badges[0].unlocked) {
+      this.unlockBadge("b1");
+    }
+
+    this.setUser(this.player);
+  }
+
+  unlockBadge(badgeId) {
+    const b = (this.player.badges || []).find(x => x.id === badgeId);
+    if (b && !b.unlocked) {
+      b.unlocked = true;
+      b.unlockedAt = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      sound.playChime();
+      this.showToast(`🏆 BADGE UNLOCKED: ${b.name}!`, 'success', 4000);
+      this.setUser(this.player);
+    }
+  }
+
+  recordMissionCompletion(missionId, xpReward) {
+    this.player.stats.missionsCompleted = (this.player.stats.missionsCompleted || 0) + 1;
+    this.player.stats.relicsDiscovered = (this.player.stats.relicsDiscovered || 0) + 1;
+    this.player.completedMissions.push({
+      id: missionId,
+      date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      xpEarned: xpReward
+    });
+    this.addXP(xpReward, "Mission Completed");
   }
 
   logout() {
     this.userSession = null;
+    this.player = JSON.parse(JSON.stringify(mockPlayerData));
+    this.mailbox = JSON.parse(JSON.stringify(mockMailboxMessages));
     try {
       if (typeof window !== 'undefined' && window.localStorage) {
         window.localStorage.removeItem('geoquest_user_session');

@@ -4,6 +4,28 @@
    ========================================================================== */
 
 export const Validator = {
+  // Email or Player ID Validation
+  validateEmailOrPlayerId(input) {
+    if (!input || !input.trim()) {
+      return { isValid: false, message: 'Email or Player ID is required.' };
+    }
+    const val = input.trim();
+    if (val.includes('@')) {
+      const regex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+      if (!regex.test(val)) {
+        return { isValid: false, message: 'Please enter a valid email address.' };
+      }
+      return { isValid: true, message: '', type: 'email' };
+    }
+    if (val.length < 2) {
+      return { isValid: false, message: 'Player ID must be at least 2 characters.' };
+    }
+    if (!/^[a-zA-Z0-9_.-]+$/.test(val)) {
+      return { isValid: false, message: 'Player ID contains invalid characters.' };
+    }
+    return { isValid: true, message: '', type: 'playerId' };
+  },
+
   // Email Validation
   validateEmail(email) {
     if (!email || !email.trim()) {

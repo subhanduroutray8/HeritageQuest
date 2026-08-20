@@ -18,7 +18,10 @@
   <link rel="stylesheet" href="./src/styles/components.css" />
   <link rel="stylesheet" href="./src/styles/device-frame.css" />
 
-  <!-- Import Maps for Three.js 3D Engine -->
+  <!--
+    IMPORTANT: importmap MUST come before any type="module" scripts.
+    Browser ignores importmap if a module script has already been processed.
+  -->
   <script type="importmap">
   {
     "imports": {
@@ -26,45 +29,14 @@
     }
   }
   </script>
+
+  <!-- Google Model Viewer for interactive 3D GLB rendering (loaded AFTER importmap) -->
+  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
 </head>
 <body>
   <div id="app-wrapper">
     <!-- Mobile Phone Viewport -->
     <main class="phone-viewport" id="phone-viewport">
-      <!-- Status Bar -->
-      <div class="phone-statusbar">
-        <span class="status-time">9:41</span>
-        
-        <!-- iOS Dynamic Island -->
-        <div class="dynamic-island">
-          <div class="sensor-dot"></div>
-          <div class="camera-dot"></div>
-        </div>
-
-        <!-- Android Center Punchhole -->
-        <div class="android-punchhole"></div>
-
-        <div style="display:flex; align-items:center; gap:6px;">
-          <!-- Signal Icon -->
-          <svg width="15" height="11" viewBox="0 0 17 11" fill="currentColor">
-            <rect x="0" y="8" width="3" height="3" rx="0.5"/>
-            <rect x="4.5" y="5.5" width="3" height="5.5" rx="0.5"/>
-            <rect x="9" y="3" width="3" height="8" rx="0.5"/>
-            <rect x="13.5" y="0" width="3" height="11" rx="0.5"/>
-          </svg>
-          <!-- Wifi Icon -->
-          <svg width="14" height="11" viewBox="0 0 16 12" fill="currentColor">
-            <path d="M8 10.5a1.5 1.5 0 100-3 1.5 1.5 0 000 3zM2.8 5.6a7.5 7.5 0 0110.4 0 .75.75 0 001.06-1.06 9 9 0 00-12.52 0 .75.75 0 001.06 1.06zM5.3 8a4 4 0 015.4 0 .75.75 0 001.06-1.06 5.5 5.5 0 00-7.52 0A.75.75 0 005.3 8z"/>
-          </svg>
-          <!-- Battery Icon -->
-          <svg width="22" height="11" viewBox="0 0 25 12" fill="currentColor">
-            <rect x="0.5" y="0.5" width="21" height="11" rx="3" fill="none" stroke="currentColor"/>
-            <rect x="2" y="2" width="16" height="8" rx="1.5"/>
-            <path d="M23 4v4" stroke="currentColor" stroke-linecap="round"/>
-          </svg>
-        </div>
-      </div>
-
       <!-- Ancient Stone Texture Overlay -->
       <div class="app-texture"></div>
 

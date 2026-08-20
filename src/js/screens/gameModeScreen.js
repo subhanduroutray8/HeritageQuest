@@ -7,6 +7,8 @@ import { SVG_ICONS } from '../assets.js';
 import { appState } from '../state.js';
 import { sound } from '../audio.js';
 import { HERITAGE_SITES } from '../heritageSites.js';
+import { verifyProximity, setSimulatedLocation, clearSimulatedLocation, isSimulatingLocation } from '../location.js';
+import { askHeritageAI, verifyHeritagePhoto } from '../geminiService.js';
 
 export function renderGameModeScreen(passedSite) {
   const site = passedSite || appState.selectedHeritageSite || HERITAGE_SITES[0];
@@ -168,7 +170,120 @@ export function renderGameModeScreen(passedSite) {
     ]
   };
 
+  // Curated Archaeological Knowledge Dossier (Unified Study Text)
+  const siteKnowledgeData = {
+    sun_temple: {
+      headline: "The Colossal Solar Chariot of Kalinga",
+      period: "13th Century (1250 CE) • Eastern Ganga Dynasty",
+      summary: "Conceived as the colossal chariot of the Sun God Surya, engineered with 24 astronomical sundial wheels and 7 pulling horses.",
+      sections: [
+        {
+          heading: "🏛️ Architectural Design & Solar Deity",
+          text: "The Konark Sun Temple in Odisha is engineered in the monumental form of a celestial chariot dedicated to Surya, the Sun God. The colossal structure is pulled by seven galloping stone horses, which symbolize the seven days of the week and the sacred rays of the sun."
+        },
+        {
+          heading: "⚙️ 24 Astronomical Sundials & 8 Spokes",
+          text: "Surrounding the temple base are 24 intricately sculpted stone wheels (ରଥ ଚକ), each functioning as an exact solar clock. Each wheel features 8 major spokes dividing the day into 8 traditional 'Prahars' (3-hour intervals), with sub-spokes allowing observers to read the exact minute by examining the shadow cast on the central axle."
+        },
+        {
+          heading: "👑 Royal Ganga Builder & Dynasty",
+          text: "Commissioned around 1250 CE by King Narasimhadeva I of the Eastern Ganga Dynasty, the monument stands as the crowning achievement of ancient Kalinga stone architecture."
+        },
+        {
+          heading: "💃 Natya Mandapa & Classical Odissi Roots",
+          text: "The Natya Mandapa (ନାଟ୍ୟ ମଣ୍ଡପ) dance pavilion is carved with 128 celestial musicians and dancers playing Mardala drums. These authentic stone postures and mudras preserve the pure historical origins of classical Odissi dance."
+        },
+        {
+          heading: "🦁 Gajasimha Gateway & Maritime History",
+          text: "Above the main entrance, the iconic Gajasimha (ଗଜସିଂହ) motif depicts a majestic lion atop an elephant, philosophically symbolizing spiritual wisdom overcoming ego and ignorance. European sailors navigating the Bay of Bengal used the temple's dark towering silhouette as an essential landmark, calling it the 'Black Pagoda'."
+        }
+      ],
+      timeline: [
+        "1. Eastern Ganga Dynasty Rule (c. 1250 CE)",
+        "2. Carving of the 24-Wheel Chariot & Sundials",
+        "3. European Navigators Maritime 'Black Pagoda' Era",
+        "4. Modern Archaeological Conservation & UNESCO Inscription"
+      ]
+    },
+    taj_mahal: {
+      headline: "The Crown of Mughal Symmetry & Marble",
+      period: "17th Century (1632–1653) • Mughal Empire",
+      summary: "An ivory-white marble mausoleum on the Yamuna river, built by Emperor Shah Jahan in memory of Mumtaz Mahal.",
+      sections: [
+        {
+          heading: "🕌 Imperial Memorial & Love",
+          text: "The Taj Mahal in Agra was commissioned in 1632 by the 5th Mughal Emperor Shah Jahan as an eternal memorial for his beloved wife Mumtaz Mahal, standing on the southern bank of the sacred Yamuna River."
+        },
+        {
+          heading: "💎 Translucent Makrana Marble & Pietra Dura",
+          text: "The entire monument is clad in pure white Makrana marble brought from Rajasthan, famous for glowing under moonlight. The walls are inlaid with thousands of semi-precious stones (jade, lapis lazuli, crystal) in delicate Pietra Dura floral patterns."
+        },
+        {
+          heading: "⌛ 22 Years, 20,000 Artisans & 4 Minarets",
+          text: "Constructed over 22 years (1632–1653) by over 20,000 master artisans, the complex features a monumental 35m high central dome and four 40m minarets designed to tilt slightly outward for earthquake protection."
+        }
+      ],
+      timeline: [
+        "1. Excavation & Deep Well Foundation (1632)",
+        "2. Main Marble Mausoleum & Central Onion Dome",
+        "3. Four Freestanding Minarets & Charbagh Gardens",
+        "4. UNESCO World Heritage Inscription (1983)"
+      ]
+    },
+    ajanta_ellora: {
+      headline: "The Ancient Basalt Rock-Cut Sanctuaries",
+      period: "2nd Century BC – 6th Century AD • Western Deccan",
+      summary: "Monolithic shrines and ancient Buddhist frescoes carved directly into volcanic basalt rock cliffs.",
+      sections: [
+        {
+          heading: "🏛️ Kailasa Temple Monolith (Cave 16)",
+          text: "Cave 16 at Ellora is the world’s largest single monolithic rock excavation. Dedicated to Shiva, it was carved vertically top-down from a single massive volcanic basalt rock cliff without joined stones."
+        },
+        {
+          heading: "🎨 30 Rock Caves & Jataka Murals",
+          text: "The Ajanta complex comprises 30 rock-cut caves renowned for exquisite murals and frescoes illustrating Buddhist Jataka tales—the stories of Buddha's past lives."
+        },
+        {
+          heading: "🕉️ Synthesis of Three Faiths",
+          text: "Ellora features 34 rock monasteries and temples spanning Buddhist, Hindu, and Jain traditions side by side in peaceful spiritual harmony."
+        }
+      ],
+      timeline: [
+        "1. Early Hinayana Rock-Cut Caves (2nd C. BC)",
+        "2. Mahayana Era Buddhist Murals & Frescoes",
+        "3. Kailasa Monolithic Temple Top-Down Carving",
+        "4. Double UNESCO World Heritage Inscription (1983)"
+      ]
+    },
+    kaziranga: {
+      headline: "The Wild Floodplain Sanctuary of the Brahmaputra",
+      period: "Established 1908 • UNESCO World Heritage Sanctuary",
+      summary: "World capital of the Great Indian One-Horned Rhinoceros across Assam's fertile wetlands.",
+      sections: [
+        {
+          heading: "🦏 Home to 2,400+ One-Horned Rhinos",
+          text: "Kaziranga hosts two-thirds of the world's total surviving population of the Great Indian One-Horned Rhinoceros, alongside Asian elephants and Royal Bengal tigers."
+        },
+        {
+          heading: "🌊 Brahmaputra Floodplains in Assam",
+          text: "Spanning the fertile floodplains of the mighty Brahmaputra River in Assam, the park is dominated by dense tall elephant grass and tropical wetlands."
+        },
+        {
+          heading: "📜 World Conservation Inscription",
+          text: "Inscribed as a UNESCO World Heritage Site in 1985 and designated a Tiger Reserve, Kaziranga is recognized as one of the world's most successful wildlife recovery sanctuaries."
+        }
+      ],
+      timeline: [
+        "1. Proposed Reserve Forest Conservation (1905)",
+        "2. Designated Game Sanctuary (1916)",
+        "3. Formally Declared National Park (1974)",
+        "4. UNESCO World Heritage Site Inscription (1985)"
+      ]
+    }
+  };
+
   const arrangeItems = siteArrangeData[site.id] || siteArrangeData.sun_temple;
+  const knowledgeData = siteKnowledgeData[site.id] || siteKnowledgeData.sun_temple;
 
   root.innerHTML = `
     <!-- Animated dark backdrop with particles -->
@@ -319,20 +434,20 @@ export function renderGameModeScreen(passedSite) {
           </div>
         </button>
 
-        <!-- 2. MISSION (ORIGINAL STORY QUEST) -->
-        <button class="gms-vopt-card gms-vopt-mission" id="btn-opt-mission" type="button">
+        <!-- 2. KNOWLEDGE (CURATED STUDY DOSSIER) -->
+        <button class="gms-vopt-card gms-vopt-knowledge" id="btn-opt-knowledge" type="button">
           <div class="vopt-glow" aria-hidden="true"></div>
           <div class="vopt-top">
-            <div class="vopt-ico-box">⚔️</div>
-            <span class="vopt-pill vopt-pill-gold">QUEST</span>
+            <div class="vopt-ico-box">📚</div>
+            <span class="vopt-pill vopt-pill-gold">STUDY LORE</span>
           </div>
           <div class="vopt-main">
-            <h3 class="vopt-title">Mission</h3>
-            <p class="vopt-desc">Story quests, hidden lore discovery, and multi-stage objectives.</p>
+            <h3 class="vopt-title">Knowledge</h3>
+            <p class="vopt-desc">Read architectural secrets & clues to master the Quiz and Timeline puzzles.</p>
           </div>
           <div class="vopt-foot">
-            <span class="vopt-xp">⭐ +300 XP</span>
-            <span class="vopt-action-arrow">Start ›</span>
+            <span class="vopt-xp">⭐ +200 XP</span>
+            <span class="vopt-action-arrow">Study ›</span>
           </div>
         </button>
 
@@ -379,6 +494,81 @@ export function renderGameModeScreen(passedSite) {
       </button>
     </div>
 
+    <!-- VIEW 3: PHYSICAL MODE 3 OPTIONS (Camera Lens, Quiz, Arrange) -->
+    <div class="gms-view-container gms-view-hidden" id="view-physical-hub">
+      <!-- Back Button to Modes -->
+      <button class="gms-back-btn" id="gms-back-to-modes-phys" type="button" aria-label="Back to Mode Selection">
+        <span class="gms-back-ico" aria-hidden="true">${SVG_ICONS.back}</span>
+        <span>Back to Modes</span>
+      </button>
+
+      <!-- Physical Hub Header -->
+      <div class="gms-virtual-header" style="background:linear-gradient(135deg, rgba(34,197,94,0.18), rgba(14,11,8,0.92)); border-color:rgba(34,197,94,0.45);">
+        <div class="gms-vh-meta">
+          <div class="gms-vh-badge" style="background:#22c55e; color:#000;">📍 ON-SITE EXPEDITION</div>
+          <h2 class="gms-vh-title">${site.name}</h2>
+          <p class="gms-vh-sub">GPS Verified! Complete 3 on-site field challenges:</p>
+        </div>
+        <div class="gms-vh-icon">🏛️</div>
+      </div>
+
+      <!-- 3 PHYSICAL OPTIONS GRID -->
+      <div class="gms-voptions-grid">
+
+        <!-- 1. AI CAMERA VERIFY -->
+        <button class="gms-vopt-card gms-vopt-camera" id="btn-opt-phys-camera" type="button" style="border-color:rgba(34,197,94,0.55); box-shadow:0 8px 32px rgba(0,0,0,0.7), 0 0 20px rgba(34,197,94,0.2);">
+          <div class="vopt-glow" style="background:rgba(34,197,94,0.15);" aria-hidden="true"></div>
+          <div class="vopt-top">
+            <div class="vopt-ico-box" style="background:rgba(34,197,94,0.25); border-color:rgba(34,197,94,0.5);">📸</div>
+            <span class="vopt-pill" style="background:#22c55e; color:#000; font-weight:800;">AI VISION VERIFY</span>
+          </div>
+          <div class="vopt-main">
+            <h3 class="vopt-title">AI Heritage Lens</h3>
+            <p class="vopt-desc">Capture a live photo of the monument. AI Vision will verify authentic architectural features.</p>
+          </div>
+          <div class="vopt-foot">
+            <span class="vopt-xp" style="color:#4ade80;">⭐ +500 XP</span>
+            <span class="vopt-action-arrow">Scan ›</span>
+          </div>
+        </button>
+
+        <!-- 2. FIELD QUIZ -->
+        <button class="gms-vopt-card gms-vopt-quiz" id="btn-opt-phys-quiz" type="button">
+          <div class="vopt-glow" aria-hidden="true"></div>
+          <div class="vopt-top">
+            <div class="vopt-ico-box">❓</div>
+            <span class="vopt-pill vopt-pill-amber">ON-SITE QUIZ</span>
+          </div>
+          <div class="vopt-main">
+            <h3 class="vopt-title">Field Quiz</h3>
+            <p class="vopt-desc">Test your archaeological knowledge directly standing in the field.</p>
+          </div>
+          <div class="vopt-foot">
+            <span class="vopt-xp">⭐ +300 XP</span>
+            <span class="vopt-action-arrow">Play ›</span>
+          </div>
+        </button>
+
+        <!-- 3. RELIC ARRANGE -->
+        <button class="gms-vopt-card gms-vopt-arrange" id="btn-opt-phys-arrange" type="button">
+          <div class="vopt-glow" aria-hidden="true"></div>
+          <div class="vopt-top">
+            <div class="vopt-ico-box">🧩</div>
+            <span class="vopt-pill vopt-pill-emerald">ON-SITE PUZZLE</span>
+          </div>
+          <div class="vopt-main">
+            <h3 class="vopt-title">Relic Reconstruction</h3>
+            <p class="vopt-desc">Reconstruct historical timeline relics & architectural layers in order.</p>
+          </div>
+          <div class="vopt-foot">
+            <span class="vopt-xp">⭐ +250 XP</span>
+            <span class="vopt-action-arrow">Solve ›</span>
+          </div>
+        </button>
+
+      </div>
+    </div>
+
     <!-- ══════════════════════════════════════════════════
          MODALS FOR THE 4 OPTIONS
     ═══════════════════════════════════════════════════ -->
@@ -398,14 +588,59 @@ export function renderGameModeScreen(passedSite) {
           <button type="button" class="vmodal-close-btn" data-close="modal-opt-3d">✕</button>
         </div>
 
-        <div class="vmodal-3d-stage">
-          <div class="vmodal-3d-pedestal">
-            <div class="vmodal-3d-monument-icon">${site.icon}</div>
-            <div class="vmodal-3d-rune-ring"></div>
-            <div class="vmodal-3d-base"></div>
-          </div>
+        <!-- 3D Viewer Stage: explicit height so model-viewer canvas is never 0px -->
+        <div id="vmodal-3d-stage-container"
+             style="position:relative; width:100%; height:320px; min-height:320px;
+                    border-radius:12px; overflow:hidden;
+                    background:radial-gradient(circle at 50% 50%, #1c1813 0%, #0a0806 100%);
+                    border:1px solid rgba(212,175,55,.35); margin-bottom:10px;">
+
+          ${site.id === 'konark' ? `
+            <!-- EXISTING konark_sun_temple.glb wired to model-viewer -->
+            <model-viewer
+              id="konark-3d-model"
+              src="/src/assets/models/konark_sun_temple.glb"
+              alt="Konark Sun Temple 3D Model"
+              camera-controls
+              auto-rotate
+              auto-rotate-delay="1000"
+              rotation-per-second="15deg"
+              shadow-intensity="1"
+              exposure="1"
+              camera-orbit="0deg 70deg 105%"
+              style="width:100%; height:320px; display:block; --poster-color:transparent;"
+            >
+              <!-- Loading poster slot -->
+              <div slot="poster"
+                   style="display:flex; flex-direction:column; align-items:center; justify-content:center;
+                          width:100%; height:100%; color:#ffd700; gap:12px; background:transparent;">
+                <span style="font-size:44px; animation:iconBob 2s ease-in-out infinite;">🏛️</span>
+                <span id="konark-3d-loading-text"
+                      style="font-size:12px; font-weight:bold; letter-spacing:0.5px;">
+                  Loading 3D Konark Sun Temple…
+                </span>
+                <div style="width:150px; height:4px; background:rgba(255,255,255,0.12);
+                            border-radius:2px; overflow:hidden;">
+                  <div id="konark-3d-progress-bar"
+                       style="width:0%; height:100%;
+                              background:linear-gradient(90deg,#d4af37,#f59e0b);
+                              transition:width 0.3s ease;">
+                  </div>
+                </div>
+              </div>
+            </model-viewer>
+          ` : `
+            <!-- Fallback animated icon for other sites -->
+            <div class="vmodal-3d-pedestal">
+              <div class="vmodal-3d-monument-icon">${site.icon}</div>
+              <div class="vmodal-3d-rune-ring"></div>
+              <div class="vmodal-3d-base"></div>
+            </div>
+          `}
+
+          <!-- Controls hint overlay -->
           <div class="vmodal-3d-controls-hint">
-            <span>🔄 360° Interactive View Active</span>
+            <span>🔄 Drag to Orbit • Pinch/Scroll to Zoom</span>
           </div>
         </div>
 
@@ -426,57 +661,48 @@ export function renderGameModeScreen(passedSite) {
       </div>
     </div>
 
-    <!-- MODAL 2: ORIGINAL MISSION MODAL -->
-    <div class="vmodal-backdrop" id="modal-opt-mission" aria-hidden="true">
-      <div class="vmodal-sheet">
+    <!-- MODAL 2: ARCHAEOLOGICAL KNOWLEDGE DOSSIER -->
+    <div class="vmodal-backdrop" id="modal-opt-knowledge" aria-hidden="true">
+      <div class="vmodal-sheet" style="max-height: 88vh; overflow-y: auto; padding-bottom: 20px;">
         <div class="vmodal-handle"></div>
         <div class="vmodal-header">
           <div class="vmodal-htitle-wrap">
-            <span style="font-size:22px;">⚔️</span>
+            <span style="font-size:22px;">📚</span>
             <div>
-              <h3 class="vmodal-title">Mission: Secrets of ${site.name}</h3>
-              <p class="vmodal-sub">Multi-stage expedition quest briefing</p>
+              <h3 class="vmodal-title">${site.name}</h3>
+              <p class="vmodal-sub">${knowledgeData.period}</p>
             </div>
           </div>
           <div style="display:flex;align-items:center;gap:6px;">
             <button type="button" class="vmodal-ai-btn" data-context="mission" aria-label="Ask AI">🤖 AI</button>
-            <button type="button" class="vmodal-close-btn" data-close="modal-opt-mission">✕</button>
+            <button type="button" class="vmodal-close-btn" data-close="modal-opt-knowledge">✕</button>
           </div>
         </div>
 
-        <div class="mission-brief-card">
-          <p class="mission-brief-text">${site.description}</p>
+        <div class="knowledge-unified-container" style="display:flex; flex-direction:column; gap:12px; padding:4px 0;">
+          <!-- Article Header & Summary -->
+          <div style="background:linear-gradient(135deg, rgba(212,175,55,0.12), rgba(0,0,0,0.5)); border:1px solid rgba(212,175,55,0.35); border-radius:12px; padding:12px 14px;">
+            <div style="color:#ffd700; font-size:14px; font-weight:800; font-family:serif; margin-bottom:4px;">
+              ${knowledgeData.headline}
+            </div>
+            <p style="color:#e2d5b0; font-size:12px; line-height:1.45; margin:0; font-style:italic;">
+              ${knowledgeData.summary}
+            </p>
+          </div>
+
+          <!-- Comprehensive Sections -->
+          ${knowledgeData.sections.map(sec => `
+            <div style="background:rgba(255,255,255,0.03); border-left:3px solid #d4af37; border-radius:0 10px 10px 0; padding:10px 12px;">
+              <h4 style="color:#ffd700; margin:0 0 4px 0; font-size:12.5px; font-weight:700;">${sec.heading}</h4>
+              <p style="color:#d1d5db; font-size:11.8px; line-height:1.5; margin:0;">
+                ${sec.text}
+              </p>
+            </div>
+          `).join('')}
         </div>
 
-        <div class="mission-steps-list">
-          <div class="mstep-item">
-            <span class="mstep-num">1</span>
-            <div class="mstep-info">
-              <span class="mstep-title">Survey the Outer Perimeter & Gateways</span>
-              <span class="mstep-desc">Inspect historical architectural boundaries and cardinal alignments.</span>
-            </div>
-            <span class="mstep-status">COMPLETED</span>
-          </div>
-          <div class="mstep-item active">
-            <span class="mstep-num">2</span>
-            <div class="mstep-info">
-              <span class="mstep-title">Decipher Ancient Inscriptions & Lore</span>
-              <span class="mstep-desc">Identify master builder symbols engraved upon the stone facets.</span>
-            </div>
-            <span class="mstep-status in-progress">IN PROGRESS</span>
-          </div>
-          <div class="mstep-item">
-            <span class="mstep-num">3</span>
-            <div class="mstep-info">
-              <span class="mstep-title">Recover the Lost Heritage Relic Cache</span>
-              <span class="mstep-desc">Unlock the final expedition vault and claim the cartographer badge.</span>
-            </div>
-            <span class="mstep-status locked">LOCKED</span>
-          </div>
-        </div>
-
-        <button type="button" class="btn btn-gold" id="btn-start-mission" style="height:46px; margin-top:10px; width:100%; border-radius:10px; background:linear-gradient(135deg,#d4af37,#f59e0b); font-weight:bold; cursor:pointer; color:#000;">
-          BEGIN MISSION QUEST (+300 XP)
+        <button type="button" class="btn btn-gold" id="btn-complete-knowledge" style="height:46px; margin-top:12px; width:100%; border-radius:10px; background:linear-gradient(135deg,#d4af37,#f59e0b); font-weight:bold; cursor:pointer; color:#000; font-size:13px; letter-spacing:0.5px;">
+          COMPLETE STUDY & CLAIM 200 XP
         </button>
       </div>
     </div>
@@ -605,6 +831,76 @@ export function renderGameModeScreen(passedSite) {
             <span>➤</span>
           </button>
         </form>
+      </div>
+    </div>
+
+    <!-- PHYSICAL MODE GEOFENCE VERIFICATION MODAL -->
+    <div class="vmodal-backdrop" id="modal-opt-physical-geofence" aria-hidden="true">
+      <div class="vmodal-sheet vmodal-physical-sheet" style="padding:18px 16px;">
+        <div class="vmodal-handle"></div>
+        <div class="vmodal-header" style="margin-bottom:12px;">
+          <div class="vmodal-htitle-wrap">
+            <span style="font-size:22px;">📍</span>
+            <div>
+              <h3 class="vmodal-title">GPS Field Expedition</h3>
+              <p class="vmodal-sub">${site.name} &bull; Geofence Lock</p>
+            </div>
+          </div>
+          <button type="button" class="vmodal-close-btn" data-close="modal-opt-physical-geofence">✕</button>
+        </div>
+
+        <div id="geofence-status-container">
+          <!-- Populated during live GPS scan -->
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: IN-GAME LIVE CAMERA & AI VISION VERIFIER -->
+    <div class="vmodal-backdrop" id="modal-opt-camera" aria-hidden="true">
+      <div class="vmodal-sheet" style="max-height:92vh; overflow-y:auto; padding-bottom:16px;">
+        <div class="vmodal-handle"></div>
+        <div class="vmodal-header" style="margin-bottom:10px;">
+          <div class="vmodal-htitle-wrap">
+            <span style="font-size:22px;">📸</span>
+            <div>
+              <h3 class="vmodal-title">${site.name} — AI Lens</h3>
+              <p class="vmodal-sub">Live Monument Vision Verification</p>
+            </div>
+          </div>
+          <button type="button" class="vmodal-close-btn" data-close="modal-opt-camera" id="btn-close-camera">✕</button>
+        </div>
+
+        <!-- Camera Viewfinder Stage -->
+        <div style="position:relative; width:100%; height:250px; background:#050505; border-radius:14px; overflow:hidden; border:2px solid rgba(34,197,94,0.45); display:flex; align-items:center; justify-content:center; margin-bottom:10px; box-shadow:0 6px 24px rgba(0,0,0,0.8);">
+          <video id="camera-video-stream" autoplay playsinline muted style="width:100%; height:100%; object-fit:cover; display:none;"></video>
+          <img id="camera-photo-preview" style="width:100%; height:100%; object-fit:contain; display:none;" alt="Captured Photo" />
+          
+          <div id="camera-placeholder-msg" style="text-align:center; padding:16px; color:#9ca3af;">
+            <div style="font-size:36px; margin-bottom:6px;">📷</div>
+            <div style="color:#fff; font-weight:bold; font-size:13px; margin-bottom:4px;">Camera Inactive</div>
+            <div style="font-size:11px; color:#a1a1aa;">Tap 'Start Camera' or choose a photo from files</div>
+          </div>
+
+          <!-- AR Reticle Overlay -->
+          <div id="camera-reticle" style="display:none; position:absolute; inset:16px; border:2px dashed rgba(34,197,94,0.7); border-radius:12px; pointer-events:none; box-shadow:inset 0 0 20px rgba(34,197,94,0.2);">
+            <div style="position:absolute; top:8px; left:8px; background:rgba(0,0,0,0.65); color:#4ade80; font-size:9.5px; font-weight:bold; padding:2px 6px; border-radius:4px; border:1px solid rgba(34,197,94,0.4);">
+              🎯 TARGET: ${site.name.toUpperCase()}
+            </div>
+          </div>
+        </div>
+
+        <!-- Hidden Canvas for frame snapshot -->
+        <canvas id="camera-snapshot-canvas" style="display:none;"></canvas>
+
+        <!-- Single Click Photo & Verify Shutter Button -->
+        <button type="button" id="btn-camera-capture-verify" style="width:100%; height:48px; background:linear-gradient(135deg, #22c55e, #16a34a); color:#fff; border:none; border-radius:12px; font-size:13.5px; font-weight:800; letter-spacing:0.5px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:10px; box-shadow:0 4px 16px rgba(34,197,94,0.35);">
+          <span>📸 CLICK PHOTO & AI VERIFY (+500 XP)</span>
+        </button>
+
+        <!-- AI Verification Result Output Box -->
+        <div id="camera-result-box" style="display:none; background:rgba(0,0,0,0.4); border:1px solid rgba(212,175,55,0.3); border-radius:10px; padding:12px;">
+          <!-- Dynamically populated with AI match status -->
+        </div>
       </div>
     </div>
 
@@ -902,16 +1198,17 @@ export function renderGameModeScreen(passedSite) {
   }
   .gms-mode-features li { font-size: 8.5px; color: #a0aec0; }
   .gms-mode-xp-tag {
-    position: absolute;
-    top: 8px;
-    right: 28px;
-    font-size: 8.5px;
+    display: inline-flex;
+    align-items: center;
+    font-size: 9px;
     font-weight: 800;
     color: #fae4a8;
     background: rgba(212,175,55,.18);
     border: 1px solid rgba(212,175,55,.4);
     border-radius: 4px;
-    padding: 1px 5px;
+    padding: 2px 7px;
+    white-space: nowrap;
+    flex-shrink: 0;
     z-index: 2;
   }
   .gms-mode-arrow {
@@ -1175,19 +1472,27 @@ export function renderGameModeScreen(passedSite) {
     justify-content: center;
   }
 
-  /* 3D Stage in Modal */
+  /* ── 3D Stage in Modal ─────────────────────────── */
   .vmodal-3d-stage {
     position: relative;
     width: 100%;
-    height: 180px;
+    height: 320px;
+    min-height: 320px;
     background: radial-gradient(circle at 50% 50%, #1c1813 0%, #0a0806 100%);
     border: 1px solid rgba(212,175,55,.3);
     border-radius: 12px;
     overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: block;
     margin-bottom: 10px;
+  }
+  /* Ensure model-viewer always fills the stage and its canvas is visible */
+  .vmodal-3d-stage model-viewer,
+  #vmodal-3d-stage-container model-viewer,
+  #konark-3d-model {
+    width: 100% !important;
+    height: 320px !important;
+    display: block !important;
+    --poster-color: transparent !important;
   }
   .vmodal-3d-pedestal {
     display: flex;
@@ -1622,6 +1927,7 @@ export function renderGameModeScreen(passedSite) {
   /* ─── DOM References & Logic ─── */
   const viewModeSelection = root.querySelector('#view-mode-selection');
   const viewVirtualHub = root.querySelector('#view-virtual-hub');
+  const viewPhysicalHub = root.querySelector('#view-physical-hub');
 
   // Navigation: Back to Map
   root.querySelector('#gms-back-to-map')?.addEventListener('click', () => {
@@ -1636,17 +1942,129 @@ export function renderGameModeScreen(passedSite) {
     viewModeSelection.classList.remove('gms-view-hidden');
   });
 
-  // Clicking VIRTUAL MODE card -> opens Virtual Hub with the 4 options!
+  // Navigation: Back from Physical Hub to Mode Selection
+  root.querySelector('#gms-back-to-modes-phys')?.addEventListener('click', () => {
+    sound.playTap();
+    viewPhysicalHub.classList.add('gms-view-hidden');
+    viewModeSelection.classList.remove('gms-view-hidden');
+  });
+
+  // Clicking VIRTUAL MODE card -> opens Virtual Hub with 4 options!
   root.querySelector('#gms-btn-virtual-mode')?.addEventListener('click', () => {
     sound.playChime();
     viewModeSelection.classList.add('gms-view-hidden');
     viewVirtualHub.classList.remove('gms-view-hidden');
   });
 
-  // Clicking PHYSICAL MODE card
+  // Clicking PHYSICAL MODE card -> perform live GPS Geofencing Check!
+  const runGeofenceCheck = async () => {
+    const container = root.querySelector('#geofence-status-container');
+    if (!container) return;
+
+    openOptionModal('modal-opt-physical-geofence');
+
+    container.innerHTML = `
+      <div style="text-align:center; padding: 20px 10px;">
+        <div style="font-size:36px; animation: gmsBgGlow 1.2s infinite alternate;">📡</div>
+        <h4 style="color:#ffd700; margin:10px 0 4px 0; font-size:15px;">Scanning Satellite GPS...</h4>
+        <p style="color:#9ca3af; font-size:11px; margin:0;">Triangulating device distance to ${site.name}</p>
+      </div>
+    `;
+
+    try {
+      const targetLat = site.lat || 19.8876;
+      const targetLng = site.lng || 86.0945;
+      const radius = site.radiusMeters || 500;
+
+      const res = await verifyProximity(targetLat, targetLng, radius);
+
+      if (res.isInside) {
+        sound.playChime();
+        container.innerHTML = `
+          <div style="text-align:center;">
+            <div style="font-size:40px; margin-bottom:6px;">🎉</div>
+            <span style="background:rgba(34,197,94,0.15); color:#4ade80; border:1px solid #22c55e; padding:3px 10px; border-radius:12px; font-size:11px; font-weight:bold;">
+              ✓ GEOFENCE VERIFIED: ON-SITE (${res.formattedDistance})
+            </span>
+            <h3 style="color:#fff; margin:12px 0 4px 0; font-size:17px;">Welcome to ${site.name}!</h3>
+            <p style="color:#e2d5b0; font-size:12px; line-height:1.4; margin:0 0 14px 0;">
+              GPS confirms you are standing within the verified heritage perimeter!
+            </p>
+
+            <div style="background:rgba(0,0,0,0.35); border:1px solid rgba(212,175,55,0.3); border-radius:10px; padding:12px; margin-bottom:14px; text-align:left;">
+              <div style="font-size:11px; color:#ffd700; font-weight:bold; margin-bottom:6px;">🎒 3 Physical Challenges Unlocked:</div>
+              <ul style="margin:0; padding-left:16px; font-size:11px; color:#d1d5db; line-height:1.6;">
+                <li>📸 <strong>AI Heritage Lens:</strong> Live monument camera photo verification</li>
+                <li>❓ <strong>Field Quiz:</strong> 6 on-site architectural questions</li>
+                <li>🧩 <strong>Relic Reconstruction:</strong> On-site timeline arrange puzzle</li>
+              </ul>
+            </div>
+
+            <button type="button" id="btn-start-field-expedition" style="width:100%; background:linear-gradient(135deg, #22c55e, #16a34a); color:#fff; border:none; padding:12px; border-radius:10px; font-weight:bold; font-size:13px; cursor:pointer;">
+              🚀 ENTER FIELD EXPEDITION HUB
+            </button>
+          </div>
+        `;
+
+        container.querySelector('#btn-start-field-expedition')?.addEventListener('click', () => {
+          sound.playChime();
+          closeOptionModal('modal-opt-physical-geofence');
+          viewModeSelection.classList.add('gms-view-hidden');
+          viewPhysicalHub.classList.remove('gms-view-hidden');
+        });
+
+      } else {
+        sound.playTap();
+        container.innerHTML = `
+          <div style="text-align:center;">
+            <div style="font-size:36px; margin-bottom:4px;">📍⚠️</div>
+            <span style="background:rgba(239,68,68,0.15); color:#f87171; border:1px solid #ef4444; padding:3px 10px; border-radius:12px; font-size:11px; font-weight:bold;">
+              OUT OF GEOFENCE RANGE
+            </span>
+            <h3 style="color:#fff; margin:10px 0 4px 0; font-size:16px;">You are ${res.formattedDistance} away</h3>
+            <p style="color:#d1d5db; font-size:12px; line-height:1.4; margin:0 0 14px 0;">
+              Physical exploration requires you to be physically present at <strong>${site.name}</strong> (within ${radius}m).
+            </p>
+
+            <div style="display:flex; flex-direction:column; gap:8px;">
+              <button type="button" id="btn-geofence-switch-virtual" style="width:100%; background:linear-gradient(135deg, #d4af37, #f59e0b); color:#000; border:none; padding:12px; border-radius:10px; font-weight:bold; font-size:12px; cursor:pointer;">
+                🌐 SWITCH TO VIRTUAL EXPLORATION
+              </button>
+            </div>
+          </div>
+        `;
+
+        container.querySelector('#btn-geofence-switch-virtual')?.addEventListener('click', () => {
+          sound.playChime();
+          closeOptionModal('modal-opt-physical-geofence');
+          viewModeSelection.classList.add('gms-view-hidden');
+          viewVirtualHub.classList.remove('gms-view-hidden');
+        });
+
+      }
+    } catch (err) {
+      container.innerHTML = `
+        <div style="text-align:center; padding:12px;">
+          <div style="font-size:32px; margin-bottom:6px;">📡❌</div>
+          <h4 style="color:#ef4444; margin:0 0 6px 0;">GPS Signal Unavailable</h4>
+          <p style="color:#d1d5db; font-size:12px; margin:0 0 12px 0;">${err.message || 'Unable to retrieve location.'}</p>
+          <button type="button" id="btn-geofence-switch-virtual-err" style="width:100%; background:linear-gradient(135deg, #d4af37, #f59e0b); color:#000; border:none; padding:12px; border-radius:10px; font-weight:bold; font-size:12px; cursor:pointer;">
+            🌐 SWITCH TO VIRTUAL EXPLORATION
+          </button>
+        </div>
+      `;
+      container.querySelector('#btn-geofence-switch-virtual-err')?.addEventListener('click', () => {
+        sound.playChime();
+        closeOptionModal('modal-opt-physical-geofence');
+        viewModeSelection.classList.add('gms-view-hidden');
+        viewVirtualHub.classList.remove('gms-view-hidden');
+      });
+    }
+  };
+
   root.querySelector('#gms-btn-physical-mode')?.addEventListener('click', () => {
-    sound.playChime();
-    appState.showToast(`📍 Physical expedition to ${site.name} launching soon! Get ready to travel!`, 'info');
+    sound.playTap();
+    runGeofenceCheck();
   });
 
   // Modal helpers
@@ -1659,6 +2077,34 @@ export function renderGameModeScreen(passedSite) {
       requestAnimationFrame(() => {
         modal.classList.add('open');
       });
+      if (modalId === 'modal-opt-3d') {
+        setTimeout(() => {
+          window.dispatchEvent(new Event('resize'));
+          const mv = modal.querySelector('model-viewer');
+          if (mv && !mv._has3DListeners) {
+            mv._has3DListeners = true;
+            const pBar = modal.querySelector('#konark-3d-progress-bar');
+            const pText = modal.querySelector('#konark-3d-loading-text');
+            mv.addEventListener('progress', (e) => {
+              const pct = Math.round((e.detail.totalProgress || 0) * 100);
+              if (pBar) pBar.style.width = `${pct}%`;
+              if (pText) pText.textContent = `Loading 3D Model: ${pct}%`;
+            });
+            mv.addEventListener('load', () => {
+              console.log('✓ Konark Sun Temple 3D GLB model loaded successfully');
+              if (pText) pText.textContent = 'Model Loaded!';
+              if (typeof mv.dismissPoster === 'function') {
+                mv.dismissPoster();
+              }
+            });
+            mv.addEventListener('error', (err) => {
+              console.error('3D Model failed to load:', err);
+              if (pText) pText.textContent = 'Unable to load 3D model. Please try again.';
+              if (pBar) pBar.style.background = '#ef4444';
+            });
+          }
+        }, 80);
+      }
     }
   };
 
@@ -1691,26 +2137,203 @@ export function renderGameModeScreen(passedSite) {
     });
   });
 
-  // Wire 4 Option Cards
+  // Wire 4 Virtual Option Cards
   root.querySelector('#btn-opt-3d')?.addEventListener('click', () => openOptionModal('modal-opt-3d'));
-  root.querySelector('#btn-opt-mission')?.addEventListener('click', () => openOptionModal('modal-opt-mission'));
+  root.querySelector('#btn-opt-knowledge')?.addEventListener('click', () => openOptionModal('modal-opt-knowledge'));
   root.querySelector('#btn-opt-arrange')?.addEventListener('click', () => openOptionModal('modal-opt-arrange'));
+
+  // Wire 3 Physical Option Cards (camera auto-start is wired below in camera section)
+  root.querySelector('#btn-opt-phys-quiz')?.addEventListener('click', () => {
+    currentQuizIndex = 0;
+    quizScore = 0;
+    renderQuizQuestion();
+    openOptionModal('modal-opt-quiz');
+  });
+  root.querySelector('#btn-opt-phys-arrange')?.addEventListener('click', () => openOptionModal('modal-opt-arrange'));
 
   // Option 1: View 3D finish
   root.querySelector('#btn-complete-3d')?.addEventListener('click', () => {
     sound.playChime();
     closeOptionModal('modal-opt-3d');
-    appState.showToast('✨ 3D Tour completed! +150 XP awarded!', 'success');
+    appState.addXP(150, "3D Tour Completed");
   });
 
-  // Option 2: Mission start
-  root.querySelector('#btn-start-mission')?.addEventListener('click', () => {
+  // Option 2: Knowledge Study complete
+  root.querySelector('#btn-complete-knowledge')?.addEventListener('click', () => {
     sound.playChime();
-    closeOptionModal('modal-opt-mission');
-    appState.showToast(`⚔️ Mission started for ${site.name}! +300 XP unlocked upon completion!`, 'success');
+    closeOptionModal('modal-opt-knowledge');
+    appState.addXP(200, "Knowledge Dossier Studied");
   });
 
-  // Option 3: Quiz logic (6 multi-questions)
+  // ══════════════════════════════════════════════════════════
+  // IN-GAME CAMERA STREAM & AI VISION VERIFICATION
+  // ══════════════════════════════════════════════════════════
+  let cameraStream = null;
+
+  const videoEl = root.querySelector('#camera-video-stream');
+  const previewImg = root.querySelector('#camera-photo-preview');
+  const placeholderEl = root.querySelector('#camera-placeholder-msg');
+  const reticleEl = root.querySelector('#camera-reticle');
+  const canvasEl = root.querySelector('#camera-snapshot-canvas');
+  const captureVerifyBtn = root.querySelector('#btn-camera-capture-verify');
+  const resultBox = root.querySelector('#camera-result-box');
+
+  const stopCameraStream = () => {
+    if (cameraStream) {
+      cameraStream.getTracks().forEach(track => track.stop());
+      cameraStream = null;
+    }
+    if (videoEl) videoEl.style.display = 'none';
+    if (reticleEl) reticleEl.style.display = 'none';
+  };
+
+  // Auto-start camera when modal opens
+  const startCameraStream = async () => {
+    if (previewImg) previewImg.style.display = 'none';
+    if (resultBox) resultBox.style.display = 'none';
+    if (placeholderEl) {
+      placeholderEl.style.display = 'block';
+      placeholderEl.innerHTML = `
+        <div style="font-size:30px; margin-bottom:6px; animation:gmsBgGlow 1s infinite alternate;">📡</div>
+        <div style="color:#ffd700; font-weight:bold; font-size:12px; margin-bottom:4px;">Activating Camera...</div>
+        <div style="font-size:10.5px; color:#a1a1aa;">Please allow camera permission</div>
+      `;
+    }
+    try {
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        cameraStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: 'environment' } }
+        });
+        if (videoEl) {
+          videoEl.srcObject = cameraStream;
+          videoEl.style.display = 'block';
+        }
+        if (placeholderEl) placeholderEl.style.display = 'none';
+        if (reticleEl) reticleEl.style.display = 'block';
+        appState.showToast("🎥 Camera ready! Aim at the monument and click photo.", "info");
+      } else {
+        throw new Error("Camera not supported.");
+      }
+    } catch (err) {
+      console.warn("Camera stream error:", err);
+      if (placeholderEl) {
+        placeholderEl.style.display = 'block';
+        placeholderEl.innerHTML = `
+          <div style="font-size:32px; margin-bottom:4px;">⚠️</div>
+          <div style="color:#f87171; font-weight:bold; font-size:12px;">Camera unavailable or permission denied</div>
+          <div style="font-size:10.5px; color:#a1a1aa; margin-top:4px;">Enable camera access in your browser settings and reopen this.</div>
+        `;
+      }
+    }
+  };
+
+  // Close camera modal → stop stream
+  root.querySelector('#btn-close-camera')?.addEventListener('click', stopCameraStream);
+
+  // Open camera modal → auto-start stream
+  root.querySelector('#btn-opt-phys-camera')?.addEventListener('click', () => {
+    openOptionModal('modal-opt-camera');
+    setTimeout(() => startCameraStream(), 300);
+  });
+
+  // Capture frame from video & run AI verification
+  captureVerifyBtn?.addEventListener('click', async () => {
+    sound.playTap();
+
+    let imageToVerify = null;
+
+    // Capture live video snapshot to canvas
+    if (cameraStream && videoEl && videoEl.videoWidth) {
+      if (canvasEl) {
+        canvasEl.width = videoEl.videoWidth;
+        canvasEl.height = videoEl.videoHeight;
+        const ctx = canvasEl.getContext('2d');
+        ctx.drawImage(videoEl, 0, 0);
+        imageToVerify = canvasEl.toDataURL('image/jpeg', 0.85);
+
+        // Freeze frame preview
+        stopCameraStream();
+        if (previewImg) {
+          previewImg.src = imageToVerify;
+          previewImg.style.display = 'block';
+        }
+      }
+    }
+
+    if (!imageToVerify) {
+      appState.showToast("⚠️ Camera not ready! Please wait for camera to load.", "error");
+      return;
+    }
+
+    if (!resultBox) return;
+    resultBox.style.display = 'block';
+    resultBox.innerHTML = `
+      <div style="text-align:center; padding:8px 0;">
+        <div style="font-size:28px; animation:gmsBgGlow 0.9s infinite alternate;">🔍</div>
+        <div style="color:#ffd700; font-weight:bold; font-size:13px; margin:6px 0 2px 0;">AI Vision Analyzing Architectural Geometry...</div>
+        <div style="font-size:10.5px; color:#9ca3af;">Checking structural features against verified ${site.name} archives</div>
+      </div>
+    `;
+
+    try {
+      const result = await verifyHeritagePhoto({
+        imageBase64: imageToVerify,
+        siteId: site.id,
+        siteName: site.name
+      });
+
+      if (result.isMatch) {
+        sound.playChime();
+        resultBox.innerHTML = `
+          <div style="text-align:left;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <span style="background:rgba(34,197,94,0.2); color:#4ade80; border:1px solid #22c55e; padding:3px 9px; border-radius:12px; font-size:11px; font-weight:800;">
+                ✓ HERITAGE SITE VERIFIED (${result.confidence}% Match)
+              </span>
+              <span style="color:#ffd700; font-size:11px; font-weight:bold;">⭐ +500 XP</span>
+            </div>
+            <p style="color:#e2d5b0; font-size:12px; line-height:1.45; margin:0 0 8px 0;">
+              ${result.feedback}
+            </p>
+            ${result.detectedFeatures && result.detectedFeatures.length ? `
+              <div style="font-size:10px; color:#9ca3af; line-height:1.4;">
+                <strong>Identified Features:</strong> ${result.detectedFeatures.join(' • ')}
+              </div>
+            ` : ''}
+          </div>
+        `;
+        appState.addXP(500, `Physical Photo Verified for ${site.name}`);
+        appState.recordMissionCompletion(`photo_${site.id}`, 500);
+      } else {
+        sound.playError();
+        resultBox.innerHTML = `
+          <div style="text-align:left;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <span style="background:rgba(239,68,68,0.2); color:#f87171; border:1px solid #ef4444; padding:3px 9px; border-radius:12px; font-size:11px; font-weight:800;">
+                ⚠️ MONUMENT NOT CONFIRMED (${result.confidence}% Match)
+              </span>
+            </div>
+            <p style="color:#d1d5db; font-size:11.8px; line-height:1.4; margin:0;">
+              ${result.feedback}
+            </p>
+            <div style="font-size:10px; color:#9ca3af; margin-top:6px;">
+              Tip: Position the camera directly facing the main facade or prominent stone carvings.
+            </div>
+          </div>
+        `;
+      }
+    } catch (err) {
+      resultBox.innerHTML = `
+        <div style="color:#f87171; font-size:11.5px; text-align:center;">
+          Verification service error: ${err.message || 'Please try again.'}
+        </div>
+      `;
+    }
+  });
+
+  // ══════════════════════════════════════════════════════════
+  // QUIZ LOGIC (6 Multi-questions)
+  // ══════════════════════════════════════════════════════════
   let quizScore = 0;
   const quizFeedback = root.querySelector('#quiz-feedback');
   const quizCounter = root.querySelector('#quiz-counter');
@@ -1794,7 +2417,7 @@ export function renderGameModeScreen(passedSite) {
     const isLast = currentQuizIndex >= siteQuizList.length - 1;
     if (isLast) {
       closeOptionModal('modal-opt-quiz');
-      appState.showToast(`🎉 6-Part Quiz complete! Total +${quizScore} XP earned!`, 'success');
+      appState.addXP(quizScore, "Heritage Quiz Completed");
       currentQuizIndex = 0;
       quizScore = 0;
     } else {
@@ -1841,7 +2464,7 @@ export function renderGameModeScreen(passedSite) {
   root.querySelector('#btn-verify-arrange')?.addEventListener('click', () => {
     sound.playChime();
     closeOptionModal('modal-opt-arrange');
-    appState.showToast('🧩 Timeline and relics successfully arranged! +250 XP earned!', 'success');
+    appState.addXP(250, "Relic Timeline Arranged");
   });
 
   // ── AI PROMPTS DATA ──
@@ -1953,7 +2576,7 @@ export function renderGameModeScreen(passedSite) {
     return typingEl;
   };
 
-  const handleUserSend = (text, context = 'hub') => {
+  const handleUserSend = async (text, context = 'hub') => {
     const userText = text.trim();
     if (!userText) return;
 
@@ -1964,12 +2587,27 @@ export function renderGameModeScreen(passedSite) {
 
     const typingIndicator = showTypingIndicator();
 
-    setTimeout(() => {
+    try {
+      const mode = context === 'quiz' ? 'Quiz' : (context === 'mission' ? 'Hint' : (context === 'arrange' ? 'Explain' : 'Ask'));
+      const response = await askHeritageAI({
+        query: userText,
+        siteId: site.id,
+        mode: mode,
+        language: 'English'
+      });
+
       typingIndicator.remove();
-      const botResponse = getAIResponse(userText, context);
       sound.playChime();
-      appendChatMessage('bot', botResponse);
-    }, 450);
+      
+      let replyHtml = response.text.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+      if (response.source && !replyHtml.includes('Source:')) {
+        replyHtml += `<div style="font-size:8.5px; color:#9ca3af; margin-top:4px;">📜 <em>Verified by: ${response.source}</em></div>`;
+      }
+      appendChatMessage('bot', replyHtml);
+    } catch (err) {
+      typingIndicator.remove();
+      appendChatMessage('bot', "I encountered an error retrieving verified heritage data.");
+    }
   };
 
   chatForm?.addEventListener('submit', (e) => {

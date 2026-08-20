@@ -30,17 +30,18 @@ export function renderLoginScreen() {
 
       <!-- Login Form Form-Card -->
       <form id="login-form" class="login-form" novalidate>
-        <!-- Email Input -->
+        <!-- Email or Player ID Input -->
         <div class="form-group">
           <div class="input-container" id="email-container">
-            <span class="input-icon-lead">${SVG_ICONS.email}</span>
+            <span class="input-icon-lead">${SVG_ICONS.user}</span>
             <input 
-              type="email" 
+              type="text" 
               id="login-email" 
               class="input-field" 
-              placeholder="Email" 
-              autocomplete="email"
-              inputmode="email"
+              placeholder="Email or Player ID" 
+              autocomplete="username"
+              autocapitalize="none"
+              spellcheck="false"
               required
             />
           </div>
@@ -96,12 +97,6 @@ export function renderLoginScreen() {
         <button type="button" class="btn btn-guest" id="btn-guest-login">
           <span class="input-icon-lead" style="margin:0; width:18px;">${SVG_ICONS.user}</span>
           <span>Play as Guest</span>
-        </button>
-
-        <!-- Enter Demo / Developer Mode Bypass -->
-        <button type="button" class="btn btn-dev-bypass" id="btn-dev-bypass" title="Direct access to Home Screen for UI testing">
-          <span style="font-size:14px;">⚡</span>
-          <span>Enter Demo / Developer Mode</span>
         </button>
       </div>
 
@@ -212,8 +207,8 @@ export function renderLoginScreen() {
 
     let hasError = false;
 
-    // Validate Email
-    const emailRes = Validator.validateEmail(emailInput.value);
+    // Validate Email or Player ID
+    const emailRes = Validator.validateEmailOrPlayerId(emailInput.value);
     if (!emailRes.isValid) {
       emailContainer.classList.add('error');
       emailContainer.classList.add('anim-shake');
@@ -239,76 +234,66 @@ export function renderLoginScreen() {
       return;
     }
 
-    // Firebase Login
-const emailVal = emailInput.value.trim();
-const passwordVal = passwordInput.value;
+    // Authentication (Email or Player ID)
+    const rawInput = emailInput.value.trim();
+    const isEmail = rawInput.includes('@');
+    const passwordVal = passwordInput.value;
 
-try {
-    const { user: firebaseUser, profile } = await loginUser(
-    emailVal,
-    passwordVal
-);
+    try {
+      const { user: firebaseUser, profile } = await loginUser(
+        rawInput,
+        passwordVal
+      );
 
-    // Use the Firebase account information
-    // while keeping the existing GeoQuest state system.
-    const rawUsername = firebaseUser.email?.split('@')[0] || 'Explorer';
-    const cleanUsername =
-        rawUsername.charAt(0).toUpperCase() +
-        rawUsername.slice(1);
+      const displayName = profile?.username || (isEmail ? rawInput.split('@')[0] : rawInput);
+      const cleanUsername = displayName.charAt(0).toUpperCase() + displayName.slice(1);
+      const resolvedEmail = profile?.email || (isEmail ? rawInput : firebaseUser.email);
 
-    appState.setUser({
-    uid: firebaseUser.uid,
-    username: profile.username,
-    email: profile.email,
-    role: profile.role,
-    level: profile.level,
-    xp: profile.xp,
-    nextLevelXp: profile.nextLevelXp,
-    title: profile.title,
-    streak: profile.streak,
-    stats: profile.stats,
-    isGuest: false
-});
+      appState.setUser({
+        uid: firebaseUser.uid,
+        username: cleanUsername,
+        email: resolvedEmail,
+        role: profile?.role || "Registered Explorer",
+        level: profile?.level || 1,
+        xp: typeof profile?.xp === 'number' ? profile.xp : 0,
+        nextLevelXp: profile?.nextLevelXp || 1000,
+        title: profile?.title || "Novice Cartographer",
+        streak: profile?.streak || 1,
+        stats: profile?.stats || { missionsCompleted: 0, relicsDiscovered: 0, countriesExplored: 0, totalDistanceKm: "0.0" },
+        badges: profile?.badges || [],
+        completedMissions: profile?.completedMissions || [],
+        isGuest: false
+      });
 
-    sound.playChime();
+      sound.playChime();
+      appState.showToast(`Welcome back, ${cleanUsername}!`, 'success', 3000);
+      appState.navigate('home');
 
-    appState.showToast(
-        `Welcome back, ${cleanUsername}!`,
-        'success',
-        3000
-    );
+    } catch (error) {
+      console.warn('Firebase login attempt error:', error);
 
-    appState.navigate('home');
+      let message = `No account found for "${rawInput}". Please create an account first.`;
 
-} catch (error) {
-    console.error('Firebase login failed:', error);
-
-    let message = 'Unable to log in. Please check your email and password.';
-
-    if (
-        error.code === 'auth/invalid-credential' ||
-        error.code === 'auth/wrong-password' ||
-        error.code === 'auth/user-not-found'
-    ) {
-        message = 'Incorrect email or password.';
-    } else if (error.code === 'auth/invalid-email') {
-        message = 'Please enter a valid email address.';
-    } else if (error.code === 'auth/user-disabled') {
+      if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+        message = 'Incorrect Email/Player ID or password.';
+      } else if (error.code === 'auth/user-not-found') {
+        message = `No account found for "${rawInput}". Please check your details or create an account.`;
+      } else if (error.code === 'auth/user-disabled') {
         message = 'This account has been disabled.';
-    } else if (error.code === 'auth/too-many-requests') {
+      } else if (error.code === 'auth/too-many-requests') {
         message = 'Too many attempts. Please try again later.';
-    } else if (error.code === 'auth/network-request-failed') {
+      } else if (error.code === 'auth/network-request-failed') {
         message = 'Network error. Please check your internet connection.';
+      }
+
+      sound.playError();
+      appState.showToast(message, 'error', 4500);
+
+      emailContainer.classList.add('error', 'anim-shake');
+      setTimeout(() => emailContainer.classList.remove('anim-shake'), 400);
+      emailError.textContent = message;
+      emailError.classList.add('visible');
     }
-
-    sound.playError();
-
-    appState.showToast(
-        message,
-        'error',
-        4000
-    );
-}
   });
 
   // 4. Forgot Password Click -> Modal
@@ -329,15 +314,7 @@ try {
     appState.openModal('guest_setup');
   });
 
-  // 7. Developer Mode Bypass -> Direct Home Screen Access
-  const devBypassBtn = container.querySelector('#btn-dev-bypass');
-  if (devBypassBtn) {
-    devBypassBtn.addEventListener('click', () => {
-      appState.enterDevMode();
-    });
-  }
-
-  // 8. Create Account Navigation Link
+  // 7. Create Account Navigation Link
   signupLinkBtn.addEventListener('click', () => {
     appState.navigate('signup');
   });

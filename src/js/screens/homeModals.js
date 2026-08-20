@@ -10,6 +10,8 @@
 import { SVG_ICONS } from '../assets.js';
 import { appState } from '../state.js';
 import { sound } from '../audio.js';
+import { askHeritageAI, setGeminiApiKey, getGeminiApiKey } from '../geminiService.js';
+import { HERITAGE_SITES } from '../heritageSites.js';
 
 export function getHomeModalHTML(modalName, modalData = {}) {
   switch (modalName) {
@@ -219,25 +221,49 @@ function setupMailboxEvents(wrapper) {
 function createLeaderboardModalHTML() {
   const lb = appState.leaderboard;
   const userRank = lb.currentUserRank;
+  const p = appState.player;
+  const pName = (p.username || '').toLowerCase().trim();
 
-  const topListHtml = lb.topPlayers.map((player, idx) => {
+  const playersToDisplay = [...(lb.topPlayers || [])];
+  
+  // If user is not yet in top players list, insert them
+  if (!playersToDisplay.some(pl => (pl.name || '').toLowerCase().trim() === pName)) {
+    playersToDisplay.push({
+      rank: userRank.rank,
+      name: p.username,
+      level: p.level,
+      xp: p.xp,
+      title: p.title,
+      avatarColor: 'var(--gold-500)',
+      isCurrentUser: true
+    });
+  }
+
+  // Sort descending by XP and assign ranks
+  playersToDisplay.sort((a, b) => b.xp - a.xp);
+  playersToDisplay.forEach((pl, i) => { pl.rank = i + 1; });
+
+  const topListHtml = playersToDisplay.map((player) => {
+    const isCurrentUser = (player.name || '').toLowerCase().trim() === pName;
     const isTop3 = player.rank <= 3;
     let rankBadge = `#${player.rank}`;
     if (player.rank === 1) rankBadge = '🥇';
     if (player.rank === 2) rankBadge = '🥈';
     if (player.rank === 3) rankBadge = '🥉';
 
+    const avatarInitial = (player.name || 'E').charAt(0).toUpperCase();
+
     return `
-      <div class="lb-row ${isTop3 ? 'top-three' : ''}">
+      <div class="lb-row ${isTop3 ? 'top-three' : ''}" style="${isCurrentUser ? 'background:rgba(212,175,55,0.18); border:1px solid rgba(212,175,55,0.5);' : ''}">
         <div class="lb-rank rank-${player.rank}">${rankBadge}</div>
-        <div class="lb-avatar" style="background: ${player.avatarColor}; color: #12100d;">
-          ${player.name.charAt(0)}
+        <div class="lb-avatar" style="background: ${isCurrentUser ? 'var(--gold-500)' : (player.avatarColor || '#38a169')}; color: #12100d; font-weight:bold;">
+          ${avatarInitial}
         </div>
         <div class="lb-player-info">
-          <span class="lb-player-name">${player.name}</span>
-          <span class="lb-player-badge">${player.badge} • Lvl ${player.level}</span>
+          <span class="lb-player-name" style="${isCurrentUser ? 'color:#ffd700; font-weight:bold;' : ''}">${player.name}${isCurrentUser ? ' (You) ★' : ''}</span>
+          <span class="lb-player-badge">${player.title || player.badge || 'Explorer'} • Lvl ${player.level || 1}</span>
         </div>
-        <div class="lb-player-xp">${player.xp.toLocaleString()} XP</div>
+        <div class="lb-player-xp" style="${isCurrentUser ? 'color:#ffd700; font-weight:bold;' : ''}">${(player.xp || 0).toLocaleString()} XP</div>
       </div>
     `;
   }).join('');
@@ -297,73 +323,80 @@ function setupLeaderboardEvents(wrapper) {
 }
 
 // ---------------------------------------------------------
-// 4. HERITAGE AI ASSISTANT MODAL (Placeholder)
+// 4. HERITAGE AI ASSISTANT MODAL (Interactive S35 + Gemini)
 // ---------------------------------------------------------
 function createHeritageAIModalHTML() {
+  const currentKey = getGeminiApiKey();
+
   return `
     <div class="modal-backdrop" id="modal-backdrop-generic">
-      <div class="modal-sheet">
+      <div class="modal-sheet home-ai-sheet" style="max-height: 88vh; display:flex; flex-direction:column; padding-bottom:12px;">
         <div class="modal-handle"></div>
 
         <!-- Header -->
-        <div class="modal-header">
+        <div class="modal-header" style="margin-bottom:8px;">
           <div style="display:flex; align-items:center; gap:8px;">
-            <span style="color:var(--gold-400); display:flex;">${SVG_ICONS.bot}</span>
-            <h3 class="modal-title">Heritage AI Guide</h3>
+            <span style="color:var(--gold-400); display:flex; font-size:18px;">${SVG_ICONS.bot}</span>
+            <div>
+              <h3 class="modal-title" style="margin:0; font-size:15px;">Heritage AI Companion</h3>
+              <p style="margin:0; font-size:10px; color:#9ca3af;">S35 Verified Knowledge Base & Gemini AI</p>
+            </div>
           </div>
-          <button type="button" class="modal-close-btn" id="modal-close-btn" aria-label="Close modal">
-            ${SVG_ICONS.close}
+          <div style="display:flex; align-items:center; gap:6px;">
+            <button type="button" class="ai-mode-badge-btn" id="btn-ai-key-toggle" title="Gemini API Key" style="background:rgba(212,175,55,0.15); border:1px solid rgba(212,175,55,0.4); color:#ffd700; border-radius:6px; font-size:10px; padding:3px 7px; cursor:pointer;">
+              🔑 ${currentKey ? 'AI Active' : 'Offline Mode'}
+            </button>
+            <button type="button" class="modal-close-btn" id="modal-close-btn" aria-label="Close modal">
+              ${SVG_ICONS.close}
+            </button>
+          </div>
+        </div>
+
+        <!-- Controls Bar: Site & Mode & Language -->
+        <div class="home-ai-controls" style="display:grid; grid-template-columns: 1.2fr 1fr 1fr; gap:6px; margin-bottom:8px;">
+          <select id="home-ai-site-select" style="background:#18181b; color:#ffd700; border:1px solid rgba(212,175,55,0.3); border-radius:6px; padding:4px 6px; font-size:10px; outline:none;">
+            <option value="sun_temple">☀️ Konark Sun Temple</option>
+            <option value="taj_mahal">🕌 Taj Mahal</option>
+            <option value="ajanta_ellora">🏛️ Ajanta & Ellora</option>
+            <option value="kaziranga">🦏 Kaziranga Park</option>
+          </select>
+          <select id="home-ai-mode-select" style="background:#18181b; color:#e4e4e7; border:1px solid rgba(255,255,255,0.15); border-radius:6px; padding:4px 6px; font-size:10px; outline:none;">
+            <option value="Ask">Mode: Ask</option>
+            <option value="Hint">Mode: Hint</option>
+            <option value="Quiz">Mode: Quiz</option>
+            <option value="Explain">Mode: Explain</option>
+          </select>
+          <select id="home-ai-lang-select" style="background:#18181b; color:#e4e4e7; border:1px solid rgba(255,255,255,0.15); border-radius:6px; padding:4px 6px; font-size:10px; outline:none;">
+            <option value="English">English</option>
+            <option value="Hindi">हिंदी (Hindi)</option>
+            <option value="Odia">ଓଡ଼ିଆ (Odia)</option>
+          </select>
+        </div>
+
+        <!-- API Key Input Drawer (Collapsible) -->
+        <div id="home-ai-key-drawer" style="display:none; background:rgba(0,0,0,0.4); border:1px dashed rgba(212,175,55,0.4); border-radius:8px; padding:8px; margin-bottom:8px;">
+          <div style="font-size:10px; color:#ffd700; margin-bottom:4px; font-weight:bold;">Google Gemini API Key (Optional)</div>
+          <div style="display:flex; gap:6px;">
+            <input type="password" id="home-ai-key-input" placeholder="Paste Gemini API key..." value="${currentKey}" style="flex:1; background:#09090b; border:1px solid #3f3f46; border-radius:6px; color:#fff; font-size:11px; padding:4px 8px;" />
+            <button type="button" id="home-ai-key-save" style="background:#d4af37; color:#000; font-weight:bold; font-size:10px; border:none; border-radius:6px; padding:4px 10px; cursor:pointer;">Save</button>
+          </div>
+          <p style="font-size:9px; color:#9ca3af; margin:4px 0 0 0;">Without an API key, the built-in S35 verified knowledge base answers instantly offline.</p>
+        </div>
+
+        <!-- Chat History Scroll Box -->
+        <div class="home-ai-messages" id="home-ai-messages" style="flex:1; min-height:220px; max-height:300px; overflow-y:auto; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:10px; display:flex; flex-direction:column; gap:8px; scrollbar-width:none; margin-bottom:8px;">
+          <div style="background:rgba(212,175,55,0.08); border-left:3px solid #d4af37; padding:8px 10px; border-radius:0 8px 8px 0; font-size:11.5px; color:#e2d5b0; line-height:1.4;">
+            🤖 <strong>Heritage AI Companion ready!</strong> Ask me about monuments, architecture, Odia culture, or switch modes for hints and quizzes.
+          </div>
+        </div>
+
+        <!-- Input Bar -->
+        <form id="home-ai-form" style="display:flex; gap:6px; align-items:center;">
+          <input type="text" id="home-ai-input" placeholder="Ask about heritage sites, history, or culture..." style="flex:1; background:#18181b; border:1.5px solid rgba(212,175,55,0.4); border-radius:8px; color:#fff; font-size:12px; padding:8px 12px; outline:none;" />
+          <button type="submit" id="home-ai-send" style="background:linear-gradient(135deg, #d4af37, #f59e0b); color:#000; border:none; border-radius:8px; width:36px; height:34px; font-weight:bold; font-size:13px; cursor:pointer; display:flex; align-items:center; justify-content:center;">
+            ➤
           </button>
-        </div>
-
-        <!-- AI Assistant Intro Card -->
-        <div class="ai-assistant-card">
-          <div class="ai-avatar-wrap anim-pulse-logo">
-            <div class="ai-avatar-icon">🤖</div>
-          </div>
-          <h4 class="ai-hero-title">Heritage AI</h4>
-          <p class="ai-status-text">Your heritage guide is ready to help ✨</p>
-          <div class="hero-divider" style="margin:12px auto;"></div>
-
-          <!-- How to Use -->
-          <div class="ai-howto-wrap">
-            <span class="ai-howto-heading">How to Use</span>
-            <p class="ai-howto-desc">
-              Use AI during exploration to know and learn about heritage sites — their history, architecture, culture, and significance.
-            </p>
-          </div>
-
-          <div class="ai-badge-soon">
-            <span>✨ AI functionality coming soon</span>
-          </div>
-        </div>
-
-        <!-- Exploration Prompts -->
-        <div class="ai-chips-wrap">
-          <span class="ai-chips-heading">EXPLORATION PROMPTS</span>
-          <div class="ai-chips-list">
-            <button type="button" class="ai-prompt-chip" data-prompt="taj">
-              <span class="chip-icon">🕌</span>
-              <span>What is the history of the Taj Mahal in Agra?</span>
-            </button>
-            <button type="button" class="ai-prompt-chip" data-prompt="ajanta">
-              <span class="chip-icon">🏛️</span>
-              <span>Tell me about Ajanta and Ellora Caves in Maharashtra</span>
-            </button>
-            <button type="button" class="ai-prompt-chip" data-prompt="sun">
-              <span class="chip-icon">☀️</span>
-              <span>How was the Sun Temple at Konark built?</span>
-            </button>
-            <button type="button" class="ai-prompt-chip" data-prompt="kaziranga">
-              <span class="chip-icon">🦏</span>
-              <span>What animals live in Kaziranga National Park?</span>
-            </button>
-          </div>
-        </div>
-
-        <button type="button" class="btn btn-gold" id="btn-ai-dismiss" style="margin-top:14px; height:46px;">
-          <span>GOT IT</span>
-        </button>
+        </form>
       </div>
     </div>
   `;
@@ -372,23 +405,121 @@ function createHeritageAIModalHTML() {
 function setupHeritageAIEvents(wrapper) {
   const backdrop = wrapper.querySelector('#modal-backdrop-generic');
   const closeBtn = wrapper.querySelector('#modal-close-btn');
-  const dismissBtn = wrapper.querySelector('#btn-ai-dismiss');
-  const chips = wrapper.querySelectorAll('.ai-prompt-chip');
+  const keyToggleBtn = wrapper.querySelector('#btn-ai-key-toggle');
+  const keyDrawer = wrapper.querySelector('#home-ai-key-drawer');
+  const keyInput = wrapper.querySelector('#home-ai-key-input');
+  const keySaveBtn = wrapper.querySelector('#home-ai-key-save');
+  const messagesContainer = wrapper.querySelector('#home-ai-messages');
+  const siteSelect = wrapper.querySelector('#home-ai-site-select');
+  const modeSelect = wrapper.querySelector('#home-ai-mode-select');
+  const langSelect = wrapper.querySelector('#home-ai-lang-select');
+  const form = wrapper.querySelector('#home-ai-form');
+  const input = wrapper.querySelector('#home-ai-input');
 
   backdrop?.addEventListener('click', (e) => {
     if (e.target === backdrop) appState.closeModal();
   });
   closeBtn?.addEventListener('click', () => appState.closeModal());
-  dismissBtn?.addEventListener('click', () => {
+
+  // Toggle API Key Drawer
+  keyToggleBtn?.addEventListener('click', () => {
     sound.playTap();
-    appState.closeModal();
+    if (keyDrawer) {
+      keyDrawer.style.display = keyDrawer.style.display === 'none' ? 'block' : 'none';
+    }
   });
 
-  chips.forEach(chip => {
-    chip.addEventListener('click', () => {
-      sound.playTap();
-      appState.showToast('Heritage AI companion will answer this in the upcoming update!', 'info');
-    });
+  // Save API Key
+  keySaveBtn?.addEventListener('click', () => {
+    sound.playChime();
+    const val = keyInput?.value?.trim() || '';
+    setGeminiApiKey(val);
+    if (keyToggleBtn) {
+      keyToggleBtn.textContent = val ? '🔑 AI Active' : 'Offline Mode';
+    }
+    if (keyDrawer) keyDrawer.style.display = 'none';
+    appState.showToast(val ? '✨ Gemini AI Connected!' : 'Switched to Offline Verified KB', 'success');
+  });
+
+  const appendMsg = (sender, text, isLive = false, source = '') => {
+    if (!messagesContainer) return;
+    const isUser = sender === 'user';
+    const msgEl = document.createElement('div');
+    msgEl.style.display = 'flex';
+    msgEl.style.flexDirection = 'column';
+    msgEl.style.alignItems = isUser ? 'flex-end' : 'flex-start';
+
+    const bubble = document.createElement('div');
+    bubble.style.maxWidth = '85%';
+    bubble.style.padding = '7px 11px';
+    bubble.style.borderRadius = isUser ? '12px 12px 2px 12px' : '12px 12px 12px 2px';
+    bubble.style.fontSize = '12px';
+    bubble.style.lineHeight = '1.4';
+    bubble.style.color = isUser ? '#000' : '#f4f4f5';
+    bubble.style.background = isUser 
+      ? 'linear-gradient(135deg, #ffd700, #f59e0b)' 
+      : 'rgba(39, 39, 42, 0.95)';
+    bubble.style.border = isUser ? 'none' : '1px solid rgba(212,175,55,0.3)';
+
+    bubble.innerHTML = text.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    msgEl.appendChild(bubble);
+
+    if (!isUser && source) {
+      const srcEl = document.createElement('div');
+      srcEl.style.fontSize = '9px';
+      srcEl.style.color = '#9ca3af';
+      srcEl.style.marginTop = '2px';
+      srcEl.style.paddingLeft = '4px';
+      srcEl.innerHTML = `📜 <em>${source}</em>`;
+      msgEl.appendChild(srcEl);
+    }
+
+    messagesContainer.appendChild(msgEl);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+  };
+
+  const handleSend = async (queryText) => {
+    const text = (queryText || input?.value || '').trim();
+    if (!text) return;
+
+    sound.playTap();
+    appendMsg('user', text);
+    if (input) input.value = '';
+
+    // Typing placeholder
+    const typingIndicator = document.createElement('div');
+    typingIndicator.id = 'home-ai-typing';
+    typingIndicator.style.fontSize = '11px';
+    typingIndicator.style.color = '#ffd700';
+    typingIndicator.style.fontStyle = 'italic';
+    typingIndicator.textContent = '🤖 Consulting verified heritage archives...';
+    messagesContainer?.appendChild(typingIndicator);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+    const siteId = siteSelect?.value || 'sun_temple';
+    const mode = modeSelect?.value || 'Ask';
+    const lang = langSelect?.value || 'English';
+
+    try {
+      const response = await askHeritageAI({
+        query: text,
+        siteId,
+        mode,
+        language: lang
+      });
+
+      typingIndicator.remove();
+      sound.playChime();
+      appendMsg('bot', response.text, response.isLiveAI, response.source);
+    } catch (err) {
+      typingIndicator.remove();
+      appendMsg('bot', "I encountered an error retrieving verified information for that topic.", false, "System Error");
+    }
+  };
+
+  form?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    handleSend();
   });
 }
 

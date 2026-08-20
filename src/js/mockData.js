@@ -5,17 +5,17 @@
 
 export const mockPlayerData = {
   username: "Explorer",
-  title: "Senior Relic Hunter",
-  level: 5,
-  xp: 2450,
-  nextLevelXp: 3000,
-  streak: 7,
-  profilePicture: null, // Uses vector emblem if null
+  title: "Novice Cartographer",
+  level: 1,
+  xp: 0,
+  nextLevelXp: 1000,
+  streak: 1,
+  profilePicture: null,
   stats: {
-    missionsCompleted: 14,
-    relicsDiscovered: 8,
-    countriesExplored: 6,
-    totalDistanceKm: "42.8"
+    missionsCompleted: 0,
+    relicsDiscovered: 0,
+    countriesExplored: 0,
+    totalDistanceKm: "0.0"
   },
   badges: [
     {
@@ -27,9 +27,9 @@ export const mockPlayerData = {
       condition: "Discover your first 2 heritage sites",
       desc: "Awarded to daring explorers who embark upon the journey of uncovering India's legendary monuments.",
       reward: "+250 XP",
-      progress: "2 / 2 Completed",
-      unlocked: true,
-      unlockedAt: "Aug 14, 2026"
+      progress: "0 / 2 Completed",
+      unlocked: false,
+      unlockedAt: null
     },
     {
       id: "b2",
@@ -40,9 +40,9 @@ export const mockPlayerData = {
       condition: "Discover 4 different heritage sites",
       desc: "Given to travelers who seek out sacred stones and marvels across multiple ancient provinces.",
       reward: "+500 XP",
-      progress: "4 / 4 Completed",
-      unlocked: true,
-      unlockedAt: "Aug 16, 2026"
+      progress: "0 / 4 Completed",
+      unlocked: false,
+      unlockedAt: null
     },
     {
       id: "b3",
@@ -53,9 +53,9 @@ export const mockPlayerData = {
       condition: "Explore heritage sites in 4 different states",
       desc: "Honors pioneers who have traversed borders across northern, western, eastern, and northeastern realms.",
       reward: "+750 XP",
-      progress: "4 / 4 Completed",
-      unlocked: true,
-      unlockedAt: "Aug 17, 2026"
+      progress: "0 / 4 Completed",
+      unlocked: false,
+      unlockedAt: null
     },
     {
       id: "b4",
@@ -66,7 +66,7 @@ export const mockPlayerData = {
       condition: "Discover all heritage sites",
       desc: "An elite title reserved for masters who hold the keys and chronicles of every sacred site in the land.",
       reward: "+1,000 XP",
-      progress: "4 / 5 Discovered",
+      progress: "0 / 4 Discovered",
       unlocked: false,
       unlockedAt: null
     },
@@ -76,61 +76,25 @@ export const mockPlayerData = {
       name: "Grand Heritage Voyager",
       icon: "👑",
       rarity: "Legendary",
-      condition: "Discover heritage sites in all states where heritage sites are present",
+      condition: "Complete all heritage missions across India",
       desc: "The supreme crown of expedition. Awarded only to those who have set foot in every heritage corner of India.",
       reward: "+1,500 XP",
-      progress: "4 / 8 States",
+      progress: "0 / 4 Sites",
       unlocked: false,
       unlockedAt: null
     }
   ],
-  completedMissions: [
-    {
-      id: "m1",
-      title: "Secrets of the Colosseum",
-      region: "Rome, Italy",
-      date: "Aug 12, 2026",
-      xpEarned: 500,
-      badgeReward: "🏛️"
-    },
-    {
-      id: "m2",
-      title: "Lost Library of Alexandria",
-      region: "Alexandria, Egypt",
-      date: "Aug 08, 2026",
-      xpEarned: 750,
-      badgeReward: "📜"
-    },
-    {
-      id: "m3",
-      title: "Canyon of the Crescent Moon",
-      region: "Petra, Jordan",
-      date: "Aug 02, 2026",
-      xpEarned: 600,
-      badgeReward: "🏰"
-    }
-  ]
+  completedMissions: []
 };
 
 export const mockLeaderboard = {
-  topPlayers: [
-    { rank: 1, name: "Arjun", level: 14, xp: 12450, badge: "👑 Grand Explorer", avatarColor: "#fae4a8" },
-    { rank: 2, name: "Riya", level: 13, xp: 11820, badge: "⭐ Master Cartographer", avatarColor: "#e5c158" },
-    { rank: 3, name: "Kabir", level: 12, xp: 10900, badge: "🔥 Trailblazer", avatarColor: "#df7d2a" },
-    { rank: 4, name: "Ananya", level: 11, xp: 9850, badge: "🏛️ Relic Seeker", avatarColor: "#d4af37" },
-    { rank: 5, name: "Rahul", level: 10, xp: 9200, badge: "🧭 Pathfinder", avatarColor: "#b89025" },
-    { rank: 6, name: "Elena", level: 9, xp: 8700, badge: "📜 Scholar", avatarColor: "#9a7315" },
-    { rank: 7, name: "Vikram", level: 8, xp: 8150, badge: "⚔️ Vanguard", avatarColor: "#8f6c18" },
-    { rank: 8, name: "Mei Lin", level: 7, xp: 7600, badge: "🛡️ Guardian", avatarColor: "#735411" },
-    { rank: 9, name: "Tariq", level: 6, xp: 6950, badge: "🏹 Scout", avatarColor: "#8c6b32" },
-    { rank: 10, name: "Player", level: 6, xp: 6400, badge: "Novice", avatarColor: "#664d12" }
-  ],
+  topPlayers: [],
   currentUserRank: {
-    rank: 27,
+    rank: 1,
     name: "Explorer",
-    level: 5,
-    xp: 2450,
-    badge: "Senior Relic Hunter"
+    level: 1,
+    xp: 0,
+    badge: "Novice Cartographer"
   }
 };
 

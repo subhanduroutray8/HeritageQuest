@@ -13,6 +13,59 @@ export function renderHomeScreen() {
   const unread = appState.getUnreadMailCount();
   const xpPct = Math.min(100, Math.round((p.xp / p.nextLevelXp) * 100));
 
+  // ── Build leaderboard list ──────────────────────────────────────────────
+  const top = appState.leaderboard.topPlayers || [];
+  const userXp = p.xp || 0;
+
+  // User is always rank 1 if no other real players exist, otherwise compute position
+  let userRank = 1;
+  for (let i = 0; i < top.length; i++) {
+    if (userXp >= top[i].xp) { userRank = i + 1; break; }
+    userRank = i + 2;
+  }
+
+  // Sync state rank
+  appState.leaderboard.currentUserRank = { rank: userRank, name: p.username, xp: userXp };
+
+  // Build visible rows: always include user + any real players above them
+  const lbEntries = [];
+  let userInserted = false;
+  for (let i = 0; i < top.length && lbEntries.length < 5; i++) {
+    const rank = i + 1;
+    if (!userInserted && userRank <= rank) {
+      lbEntries.push({ rank: userRank, name: p.username, xp: userXp, isUser: true });
+      userInserted = true;
+      if (lbEntries.length >= 5) break;
+    }
+    if (top[i].name.toLowerCase() !== p.username.toLowerCase()) {
+      lbEntries.push({ rank, name: top[i].name, xp: top[i].xp, isUser: false });
+    }
+  }
+  if (!userInserted) {
+    if (lbEntries.length >= 5) lbEntries[4] = { rank: userRank, name: p.username, xp: userXp, isUser: true };
+    else lbEntries.push({ rank: userRank, name: p.username, xp: userXp, isUser: true });
+  }
+
+  const lbListHTML = lbEntries.length === 0
+    ? `<li style="background:rgba(212,175,55,0.15); border:1px solid rgba(212,175,55,0.4); border-radius:6px;">
+        <span class="r" style="color:#ffd700;">🥇</span>
+        <span class="n" style="color:#ffd700; font-weight:800;">${p.username} ⭐</span>
+        <span class="x">${userXp.toLocaleString()} XP</span>
+       </li>`
+    : lbEntries.map(e => {
+        const rankIcons = ['🥇','🥈','🥉'];
+        const rankDisplay = e.rank <= 3 ? rankIcons[e.rank - 1] : e.rank;
+        const userStyle = e.isUser ? 'background:rgba(212,175,55,0.15); border:1px solid rgba(212,175,55,0.4); border-radius:6px; margin:1px 0;' : '';
+        const nameStyle = e.isUser ? 'color:#ffd700; font-weight:800;' : '';
+        const rankStyle = e.isUser ? 'color:#ffd700;' : '';
+        return `<li style="${userStyle}">
+          <span class="r" style="${rankStyle}">${rankDisplay}</span>
+          <span class="n" style="${nameStyle}">${e.name}${e.isUser ? ' ⭐' : ''}</span>
+          <span class="x">${e.xp.toLocaleString()} XP</span>
+        </li>`;
+      }).join('');
+  // ── End leaderboard ─────────────────────────────────────────────────────
+
   /* ─── Root container ─── */
   const root = document.createElement('div');
   root.className = 'screen-view hs anim-fade-in';
@@ -86,23 +139,17 @@ export function renderHomeScreen() {
       <section class="hs-card hs-lb" id="hs-lb" role="region" aria-label="Leaderboard">
         <div class="hs-lb-trophy" aria-hidden="true">🏆</div>
         <h2 class="hs-stitle">LEADERBOARD</h2>
-        <p class="hs-ssub">Top 10 Explorers</p>
+        <p class="hs-ssub">Top Explorers</p>
 
         <ol class="hs-lb-list" aria-label="Top explorers">
-          <li><span class="r">1</span><span class="n">Arjun</span><span class="x">12,450 XP</span></li>
-          <li><span class="r">2</span><span class="n">Riya</span><span class="x">11,820 XP</span></li>
-          <li><span class="r">3</span><span class="n">Kabir</span><span class="x">10,900 XP</span></li>
-          <li><span class="r">4</span><span class="n">Ananya</span><span class="x">9,850 XP</span></li>
-          <li><span class="r">5</span><span class="n">Rahul</span><span class="x">9,200 XP</span></li>
-          <li class="dots"><span>...</span><span>...</span></li>
-          <li><span class="r">10</span><span class="n">Player</span><span class="x">6,400 XP</span></li>
+          ${lbListHTML}
         </ol>
 
         <div class="hs-myrank">
           <span class="hs-myrank-lbl">YOUR RANK</span>
-          <span class="hs-myrank-num">#27</span>
+          <span class="hs-myrank-num">#${userRank}</span>
           <span class="hs-myrank-user">${p.username}</span>
-          <span class="hs-myrank-xp">5,420 XP</span>
+          <span class="hs-myrank-xp">${userXp.toLocaleString()} XP</span>
         </div>
       </section>
 
@@ -931,6 +978,67 @@ button.hs-card:active { transform: scale(.96); }
         tab.classList.add('active');
       }
     });
+  });
+
+  // Reactive DOM sync for real-time leaderboard and XP updates
+  const updateLeaderboardDOM = () => {
+    const listEl = root.querySelector('.hs-lb-list');
+    const myRankNum = root.querySelector('.hs-myrank-num');
+    const myRankXp = root.querySelector('.hs-myrank-xp');
+    const myRankUser = root.querySelector('.hs-myrank-user');
+    const headerXpVal = root.querySelector('.hs-gold-val');
+    const headerLvlPill = root.querySelector('.hs-badge-pill');
+
+    const currP = appState.player;
+    const topP = appState.leaderboard.topPlayers || [];
+    const currUserXp = currP.xp || 0;
+    const currUserRank = appState.leaderboard.currentUserRank?.rank || 1;
+
+    if (headerXpVal) headerXpVal.textContent = `${currUserXp.toLocaleString()} XP`;
+    if (headerLvlPill) headerLvlPill.textContent = `LEVEL ${currP.level || 1}`;
+
+    if (listEl) {
+      const entries = [];
+      let userPlaced = false;
+      for (let i = 0; i < topP.length && entries.length < 5; i++) {
+        const rank = i + 1;
+        if (!userPlaced && currUserRank <= rank) {
+          entries.push({ rank: currUserRank, name: currP.username, xp: currUserXp, isUser: true });
+          userPlaced = true;
+          if (entries.length >= 5) break;
+        }
+        if (topP[i].name.toLowerCase() !== currP.username.toLowerCase()) {
+          entries.push({ rank, name: topP[i].name, xp: topP[i].xp, isUser: false });
+        }
+      }
+      if (!userPlaced) {
+        if (entries.length >= 5) entries[4] = { rank: currUserRank, name: currP.username, xp: currUserXp, isUser: true };
+        else entries.push({ rank: currUserRank, name: currP.username, xp: currUserXp, isUser: true });
+      }
+
+      listEl.innerHTML = entries.map(e => {
+        const rankIcons = ['🥇','🥈','🥉'];
+        const rankDisplay = e.rank <= 3 ? rankIcons[e.rank - 1] : e.rank;
+        const userStyle = e.isUser ? 'background:rgba(212,175,55,0.15); border:1px solid rgba(212,175,55,0.4); border-radius:6px; margin:1px 0;' : '';
+        const nameStyle = e.isUser ? 'color:#ffd700; font-weight:800;' : '';
+        const rankStyle = e.isUser ? 'color:#ffd700;' : '';
+        return `<li style="${userStyle}">
+          <span class="r" style="${rankStyle}">${rankDisplay}</span>
+          <span class="n" style="${nameStyle}">${e.name}${e.isUser ? ' ⭐' : ''}</span>
+          <span class="x">${(e.xp || 0).toLocaleString()} XP</span>
+        </li>`;
+      }).join('');
+    }
+
+    if (myRankNum) myRankNum.textContent = `#${currUserRank}`;
+    if (myRankXp) myRankXp.textContent = `${currUserXp.toLocaleString()} XP`;
+    if (myRankUser) myRankUser.textContent = currP.username;
+  };
+
+  appState.subscribe((event) => {
+    if (event === 'leaderboard_update' || event === 'user_change') {
+      updateLeaderboardDOM();
+    }
   });
 
   return root;
